@@ -33,7 +33,14 @@ class SubtitleCacheManager(
     ): String {
         val dir = File(subtitleRootDir, videoId).also { it.mkdirs() }
         val file = File(dir, "$languageCode.$format")
-        file.writeText(content)
+        // Atomic write: write to temp file then rename to prevent corrupt files on crash
+        val tempFile = File(dir, "$languageCode.$format.tmp")
+        tempFile.writeText(content)
+        if (!tempFile.renameTo(file)) {
+            // renameTo can fail on some filesystems; fall back to copy + delete
+            tempFile.copyTo(file, overwrite = true)
+            tempFile.delete()
+        }
         dao.upsert(
             SubtitleCacheEntity(
                 videoId = videoId,

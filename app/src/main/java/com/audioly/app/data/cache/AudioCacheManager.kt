@@ -17,11 +17,12 @@ class AudioCacheManager(context: Context, maxBytes: Long = DEFAULT_MAX_BYTES) {
     val cache: SimpleCache
 
     private val cacheDir = File(context.cacheDir, CACHE_DIR_NAME).also { it.mkdirs() }
+    private val databaseProvider: StandaloneDatabaseProvider
 
     init {
-        val dbProvider = StandaloneDatabaseProvider(context)
+        databaseProvider = StandaloneDatabaseProvider(context)
         val evictor = LeastRecentlyUsedCacheEvictor(maxBytes)
-        cache = SimpleCache(cacheDir, evictor, dbProvider)
+        cache = SimpleCache(cacheDir, evictor, databaseProvider)
     }
 
     /** Total bytes currently stored. */
@@ -39,7 +40,10 @@ class AudioCacheManager(context: Context, maxBytes: Long = DEFAULT_MAX_BYTES) {
         cache.removeResource(videoId)
     }
 
-    fun release() = cache.release()
+    fun release() {
+        cache.release()
+        databaseProvider.close()
+    }
 
     companion object {
         private const val CACHE_DIR_NAME = "audio_cache"

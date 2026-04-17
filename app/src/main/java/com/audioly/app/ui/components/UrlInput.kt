@@ -3,11 +3,13 @@ package com.audioly.app.ui.components
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -32,10 +34,16 @@ fun UrlInput(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            label = { Text("YouTube URL") },
-            placeholder = { Text("https://youtu.be/...") },
+            placeholder = { Text("Paste YouTube link here...") },
             singleLine = true,
             isError = error != null,
+            shape = MaterialTheme.shapes.large,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
             supportingText = if (error != null) {
                 { Text(error, color = MaterialTheme.colorScheme.error) }
             } else null,
@@ -52,9 +60,15 @@ fun UrlInput(
                         }
                     }
                     IconButton(onClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
-                        onValueChange(text)
+                        try {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                            val text = clipboard?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+                            onValueChange(text)
+                        } catch (_: SecurityException) {
+                            // Android 13+ can deny clipboard access when app doesn't have focus
+                        } catch (_: Exception) {
+                            // Guard against OEM-specific clipboard quirks
+                        }
                     }) {
                         Icon(Icons.Filled.ContentPaste, contentDescription = "Paste")
                     }
@@ -62,16 +76,21 @@ fun UrlInput(
             },
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(16.dp))
         Button(
             onClick = {
                 keyboard?.hide()
                 onGo(value)
             },
             enabled = enabled && value.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp), // Tall, prominent button
+            shape = MaterialTheme.shapes.large,
         ) {
-            Text("Play Audio")
+            Icon(Icons.Rounded.PlayArrow, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Extract & Play", style = MaterialTheme.typography.titleMedium)
         }
     }
 }

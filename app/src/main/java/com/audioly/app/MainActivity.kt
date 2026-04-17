@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -83,8 +84,8 @@ class MainActivity : ComponentActivity() {
 private fun AudiolyMainContent(initialUrl: String?, app: AudiolyApp) {
     val navController = rememberNavController()
 
-    // Track whether the share intent URL has been consumed
-    var consumedInitialUrl by remember { mutableStateOf(false) }
+    // Track whether the share intent URL has been consumed (survives config changes)
+    var consumedInitialUrl by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = {
@@ -155,7 +156,7 @@ private fun AudiolyMainContent(initialUrl: String?, app: AudiolyApp) {
                 }
                 composable("player/{videoId}") { _ ->
                     PlayerScreen(
-                        playerRepository = app.playerRepository,
+                        app = app,
                         onNavigateUp = { navController.popBackStack() },
                     )
                 }

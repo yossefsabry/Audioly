@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.audioly.app.data.db.entities.TrackEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -41,4 +42,22 @@ interface TrackDao {
 
     @Query("SELECT * FROM tracks ORDER BY addedAt DESC")
     fun observeAll(): Flow<List<TrackEntity>>
+
+    /**
+     * Atomically read existing row + upsert merged data.
+     * Prevents race where concurrent calls for the same videoId
+     * overwrite each other's audioFilePath / play stats.
+     */
+    @Transaction
+    suspend fun upsertPreservingUserData(track: TrackEntity) {
+        val existing = getById(track.videoId)
+        upsert(
+            track.copy(
+                audioFilePath = existing?.audioFilePath ?: track.audioFilePath,
+                lastPlayedAt = existing?.lastPlayedAt ?: track.lastPlayedAt,
+                playCount = existing?.playCount ?: track.playCount,
+                addedAt = existing?.addedAt ?: track.addedAt,
+            )
+        )
+    }
 }

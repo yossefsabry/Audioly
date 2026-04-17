@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -41,6 +42,16 @@ fun SubtitleView(
 ) {
     val listState = rememberLazyListState()
     var userScrolled by remember { mutableStateOf(false) }
+
+    // Detect user-initiated scrolls via snapshotFlow
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }
+            .collect { scrolling ->
+                if (scrolling) {
+                    userScrolled = true
+                }
+            }
+    }
 
     // Auto-scroll when active cue changes and user hasn't manually scrolled
     LaunchedEffect(activeCueIndex) {

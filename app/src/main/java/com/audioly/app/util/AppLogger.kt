@@ -34,6 +34,7 @@ object AppLogger {
     /** Observable list of log entries, newest first. */
     val entries: StateFlow<List<LogEntry>> = _entries.asStateFlow()
 
+    @Volatile
     private var logFile: File? = null
 
     // ─── Init ─────────────────────────────────────────────────────────────────
@@ -81,6 +82,8 @@ object AppLogger {
     /** Get the log file path for sharing. */
     fun getLogFilePath(): String? = logFile?.absolutePath
 
+    private val bufferLock = Any()
+
     // ─── Internal ─────────────────────────────────────────────────────────────
 
     private fun log(level: LogLevel, tag: String, message: String, throwable: Throwable? = null) {
@@ -101,34 +104,41 @@ object AppLogger {
             throwable = traceString,
         )
 
-        // Add to circular buffer
-        buffer.addFirst(entry)
-        while (buffer.size > MAX_ENTRIES) {
-            buffer.removeLast()
+        // Add to circular buffer — synchronized so add+trim+snapshot is atomic
+        synchronized(bufferLock) {
+            buffer.addFirst(entry)
+            while (buffer.size > MAX_ENTRIES) {
+                buffer.removeLast()
+            }
+            _entries.value = buffer.toList()
         }
-
-        // Update StateFlow
-        _entries.value = buffer.toList()
 
         // Append to file (fire-and-forget, don't block caller)
         appendToFile(entry)
     }
 
     private fun appendToFile(entry: LogEntry) {
-        val file = logFile ?: return
-        try {
-            // Rotate if too large
-            if (file.exists() && file.length() > MAX_FILE_SIZE) {
-                val backup = File(file.parent, "audioly_prev.log")
-                if (backup.exists()) backup.delete()
-                file.renameTo(backup)
-                logFile = File(file.parent, LOG_FILE_NAME)
+        synchronized(bufferLock) {
+            val file = logFile ?: return
+            try {
+                // Rotate if too large
+                if (file.exists() && file.length() > MAX_FILE_SIZE) {
+                    val backup = File(file.parent, "audioly_prev.log")
+                    if (backup.exists()) backup.delete()
+                    val renamed = file.renameTo(backup)
+                    if (renamed) {
+                        logFile = File(file.parent, LOG_FILE_NAME)
+                    } else {
+                        // renameTo failed — truncate the existing file instead of losing it
+                        file.writeText("")
+                    }
+                }
+                FileWriter(logFile, true).use { writer ->
+                    writer.appendLine(entry.formatted())
+                }
+            } catch (_: Exception) {
+                // Can't log a logging failure — just drop it
             }
-            FileWriter(logFile, true).use { writer ->
-                writer.appendLine(entry.formatted())
-            }
-        } catch (_: Exception) {
-            // Can't log a logging failure — just drop it
         }
     }
 

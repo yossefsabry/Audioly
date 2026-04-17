@@ -32,18 +32,17 @@ class TrackRepository(private val dao: TrackDao) {
      * play stats if the row already exists (handled by [recordPlay] / [setAudioFilePath]).
      */
     suspend fun upsertFromExtraction(info: StreamInfo) {
-        val existing = dao.getById(info.videoId)
-        dao.upsert(
+        dao.upsertPreservingUserData(
             TrackEntity(
                 videoId = info.videoId,
                 title = info.title,
                 uploader = info.uploader,
                 thumbnailUrl = info.thumbnailUrl,
                 durationSeconds = info.durationSeconds,
-                audioFilePath = existing?.audioFilePath,
-                lastPlayedAt = existing?.lastPlayedAt ?: 0L,
-                playCount = existing?.playCount ?: 0,
-                addedAt = existing?.addedAt ?: System.currentTimeMillis(),
+                audioFilePath = null,
+                lastPlayedAt = 0L,
+                playCount = 0,
+                addedAt = System.currentTimeMillis(),
             ),
         )
     }

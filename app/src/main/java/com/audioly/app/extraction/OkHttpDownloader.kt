@@ -26,27 +26,34 @@ internal class OkHttpDownloader private constructor() : Downloader() {
             values.forEach { value -> reqBuilder.addHeader(key, value) }
         }
 
-        // Build body
-        val body = request.dataToSend()?.toRequestBody()
+        // Build body — empty byte arrays must not be sent on GET (OkHttp throws)
+        val body = request.dataToSend()?.takeIf { it.isNotEmpty() }?.toRequestBody()
 
-        reqBuilder.method(request.httpMethod(), body)
+        // POST/PUT/PATCH require a non-null body; provide an empty one if needed
+        val method = request.httpMethod()
+        val effectiveBody = body ?: if (method in listOf("POST", "PUT", "PATCH")) {
+            ByteArray(0).toRequestBody()
+        } else null
 
-        val okResponse = client.newCall(reqBuilder.build()).execute()
-        val responseBody = okResponse.body?.string() ?: ""
+        reqBuilder.method(method, effectiveBody)
 
-        // Convert OkHttp headers to Map<String, List<String>>
-        val responseHeaders = mutableMapOf<String, MutableList<String>>()
-        okResponse.headers.forEach { (name, value) ->
-            responseHeaders.getOrPut(name) { mutableListOf() }.add(value)
+        client.newCall(reqBuilder.build()).execute().use { okResponse ->
+            val responseBody = okResponse.body?.string() ?: ""
+
+            // Convert OkHttp headers to Map<String, List<String>>
+            val responseHeaders = mutableMapOf<String, MutableList<String>>()
+            okResponse.headers.forEach { (name, value) ->
+                responseHeaders.getOrPut(name) { mutableListOf() }.add(value)
+            }
+
+            return Response(
+                okResponse.code,
+                okResponse.message,
+                responseHeaders,
+                responseBody,
+                request.url()
+            )
         }
-
-        return Response(
-            okResponse.code,
-            okResponse.message,
-            responseHeaders,
-            responseBody,
-            request.url()
-        )
     }
 
     companion object {

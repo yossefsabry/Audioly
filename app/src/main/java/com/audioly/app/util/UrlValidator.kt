@@ -11,6 +11,10 @@ import java.net.URI
  *  - https://music.youtube.com/watch?v=VIDEO_ID
  *  - https://youtu.be/VIDEO_ID
  *  - https://youtube.com/watch?v=VIDEO_ID (no www)
+ *  - https://www.youtube.com/shorts/VIDEO_ID
+ *  - https://www.youtube.com/embed/VIDEO_ID
+ *  - https://www.youtube.com/v/VIDEO_ID
+ *  - https://www.youtube.com/live/VIDEO_ID
  */
 object UrlValidator {
 
@@ -22,6 +26,9 @@ object UrlValidator {
     )
     private val SHORT_HOSTS = setOf("youtu.be", "www.youtu.be")
 
+    /** Path prefixes that contain the video ID as the next segment. */
+    private val PATH_ID_PREFIXES = setOf("/shorts/", "/embed/", "/v/", "/live/")
+
     /** Returns video ID if URL is a valid YouTube watch URL, null otherwise. */
     fun extractVideoId(url: String): String? {
         val trimmed = url.trim()
@@ -31,18 +38,34 @@ object UrlValidator {
             if (scheme != "http" && scheme != "https") return null
 
             val host = uri.host?.lowercase() ?: return null
+            val path = uri.path ?: ""
 
             when {
                 host in YOUTUBE_HOSTS -> {
-                    if (uri.path == "/watch") {
-                        uri.query?.split("&")
-                            ?.firstOrNull { it.startsWith("v=") }
-                            ?.removePrefix("v=")
-                            ?.takeIf { it.isNotBlank() }
-                    } else null
+                    when {
+                        // Standard /watch?v=ID
+                        path == "/watch" -> {
+                            uri.query?.split("&")
+                                ?.firstOrNull { it.startsWith("v=") }
+                                ?.removePrefix("v=")
+                                ?.takeIf { it.isNotBlank() }
+                        }
+                        // /shorts/ID, /embed/ID, /v/ID, /live/ID
+                        else -> {
+                            PATH_ID_PREFIXES.firstNotNullOfOrNull { prefix ->
+                                if (path.startsWith(prefix)) {
+                                    path.removePrefix(prefix)
+                                        .split("/").firstOrNull()
+                                        ?.split("?")?.firstOrNull()
+                                        ?.takeIf { it.isNotBlank() }
+                                } else null
+                            }
+                        }
+                    }
                 }
                 host in SHORT_HOSTS -> {
-                    uri.path?.removePrefix("/")?.takeIf { it.isNotBlank() && !it.contains("/") }
+                    path.removePrefix("/")
+                        ?.takeIf { it.isNotBlank() && !it.contains("/") }
                 }
                 else -> null
             }

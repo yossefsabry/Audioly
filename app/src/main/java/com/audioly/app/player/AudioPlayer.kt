@@ -15,6 +15,7 @@ import com.audioly.app.data.cache.AudioCacheManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 /**
  * Thin wrapper around [ExoPlayer].
@@ -28,28 +29,36 @@ class AudioPlayer(
     private val audioCacheManager: AudioCacheManager,
 ) {
 
-    val exoPlayer: ExoPlayer = buildExoPlayer(context, audioCacheManager)
+    internal val exoPlayer: ExoPlayer = buildExoPlayer(context, audioCacheManager)
 
     private val _state = MutableStateFlow(PlayerState())
     val state: StateFlow<PlayerState> = _state.asStateFlow()
 
     private var currentMeta = Meta()
 
-    init {
-        exoPlayer.addListener(object : Player.Listener {
-            override fun onPlaybackStateChanged(playbackState: Int) = updateState()
-            override fun onIsPlayingChanged(isPlaying: Boolean) = updateState()
-            override fun onIsLoadingChanged(isLoading: Boolean) = updateState()
+    @Volatile
+    private var released = false
 
-            override fun onPlayerError(error: PlaybackException) {
-                AppLogger.e(TAG, "Playback error: ${error.errorCodeName}", error)
-                _state.value = _state.value.copy(
+    private val listener = object : Player.Listener {
+        override fun onPlaybackStateChanged(playbackState: Int) = updateState()
+        override fun onIsPlayingChanged(isPlaying: Boolean) = updateState()
+        override fun onIsLoadingChanged(isLoading: Boolean) = updateState()
+
+        override fun onPlayerError(error: PlaybackException) {
+            if (released) return
+            AppLogger.e(TAG, "Playback error: ${error.errorCodeName}", error)
+            _state.update {
+                it.copy(
                     error = "Playback error: ${error.localizedMessage ?: error.errorCodeName}",
                     isBuffering = false,
                     isPlaying = false,
                 )
             }
-        })
+        }
+    }
+
+    init {
+        exoPlayer.addListener(listener)
     }
 
     // ─── Playback control ─────────────────────────────────────────────────────
@@ -62,11 +71,15 @@ class AudioPlayer(
         thumbnailUrl: String,
         durationMs: Long,
     ) {
+        if (released) {
+            AppLogger.w(TAG, "load() called after release, ignoring")
+            return
+        }
         try {
             AppLogger.i(TAG, "Loading audio: $videoId — $title")
             currentMeta = Meta(videoId, title, uploader, thumbnailUrl, durationMs)
             // Clear any previous error
-            _state.value = _state.value.copy(error = null)
+            _state.update { it.copy(error = null) }
             val mediaItem = MediaItem.Builder()
                 .setUri(audioUrl)
                 .setMediaId(videoId)
@@ -77,69 +90,96 @@ class AudioPlayer(
             updateState()
         } catch (e: Exception) {
             AppLogger.e(TAG, "Failed to load audio: $videoId", e)
-            _state.value = _state.value.copy(
-                videoId = videoId,
-                title = title,
-                uploader = uploader,
-                thumbnailUrl = thumbnailUrl,
-                error = "Failed to load: ${e.message}",
-                isBuffering = false,
-            )
+            _state.update {
+                it.copy(
+                    videoId = videoId,
+                    title = title,
+                    uploader = uploader,
+                    thumbnailUrl = thumbnailUrl,
+                    error = "Failed to load: ${e.message}",
+                    isBuffering = false,
+                )
+            }
         }
     }
 
-    fun play() { exoPlayer.play(); updateState() }
-    fun pause() { exoPlayer.pause(); updateState() }
-    fun togglePlayPause() { if (exoPlayer.isPlaying) pause() else play() }
+    fun play() { if (!released) { exoPlayer.play(); updateState() } }
+    fun pause() { if (!released) { exoPlayer.pause(); updateState() } }
+    fun togglePlayPause() { if (!released) { if (exoPlayer.isPlaying) pause() else play() } }
 
     fun seekTo(positionMs: Long) {
+        if (released) return
         exoPlayer.seekTo(positionMs)
         updateState()
     }
 
-    fun skipForward(intervalMs: Long) = seekTo((exoPlayer.currentPosition + intervalMs).coerceAtMost(exoPlayer.duration.coerceAtLeast(0L)))
-    fun skipBack(intervalMs: Long) = seekTo((exoPlayer.currentPosition - intervalMs).coerceAtLeast(0L))
+    fun skipForward(intervalMs: Long) {
+        if (released) return
+        val duration = exoPlayer.duration
+        if (duration == C.TIME_UNSET) return
+        seekTo((exoPlayer.currentPosition + intervalMs).coerceAtMost(duration))
+    }
+    fun skipBack(intervalMs: Long) {
+        if (released) return
+        seekTo((exoPlayer.currentPosition - intervalMs).coerceAtLeast(0L))
+    }
 
     fun setSpeed(speed: Float) {
+        if (released) return
         exoPlayer.setPlaybackSpeed(speed)
         updateState()
     }
 
     fun setSubtitleLanguage(languageCode: String) {
-        _state.value = _state.value.copy(selectedSubtitleLanguage = languageCode)
+        if (released) return
+        _state.update { it.copy(selectedSubtitleLanguage = languageCode) }
     }
 
     fun setSubtitleIndex(index: Int) {
-        _state.value = _state.value.copy(currentSubtitleIndex = index)
+        if (released) return
+        _state.update { it.copy(currentSubtitleIndex = index) }
     }
 
     // ─── Position polling ─────────────────────────────────────────────────────
 
     /** Called periodically (e.g. 250 ms) by the service to keep position fresh. */
     fun tick() {
-        if (exoPlayer.isPlaying) updateState()
+        if (!released && exoPlayer.isPlaying) updateState()
     }
 
     // ─── Internals ────────────────────────────────────────────────────────────
 
     private fun updateState() {
-        _state.value = PlayerState(
-            videoId = currentMeta.videoId,
-            title = currentMeta.title,
-            uploader = currentMeta.uploader,
-            thumbnailUrl = currentMeta.thumbnailUrl,
-            durationMs = exoPlayer.duration.coerceAtLeast(0L),
-            positionMs = exoPlayer.currentPosition.coerceAtLeast(0L),
-            isPlaying = exoPlayer.isPlaying,
-            isBuffering = exoPlayer.playbackState == Player.STATE_BUFFERING,
-            playbackSpeed = exoPlayer.playbackParameters.speed,
-            selectedSubtitleLanguage = _state.value.selectedSubtitleLanguage,
-            currentSubtitleIndex = _state.value.currentSubtitleIndex,
-            error = _state.value.error,
-        )
+        if (released) return
+        val meta = currentMeta
+        val duration = exoPlayer.duration.coerceAtLeast(0L)
+        val position = exoPlayer.currentPosition.coerceAtLeast(0L)
+        val playing = exoPlayer.isPlaying
+        val buffering = exoPlayer.playbackState == Player.STATE_BUFFERING
+        val speed = exoPlayer.playbackParameters.speed
+        _state.update { prev ->
+            PlayerState(
+                videoId = meta.videoId,
+                title = meta.title,
+                uploader = meta.uploader,
+                thumbnailUrl = meta.thumbnailUrl,
+                durationMs = duration,
+                positionMs = position,
+                isPlaying = playing,
+                isBuffering = buffering,
+                playbackSpeed = speed,
+                selectedSubtitleLanguage = prev.selectedSubtitleLanguage,
+                currentSubtitleIndex = prev.currentSubtitleIndex,
+                error = prev.error,
+            )
+        }
     }
 
-    fun release() = exoPlayer.release()
+    fun release() {
+        released = true
+        exoPlayer.removeListener(listener)
+        exoPlayer.release()
+    }
 
     // ─── Builder ──────────────────────────────────────────────────────────────
 

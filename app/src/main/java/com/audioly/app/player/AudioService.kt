@@ -17,6 +17,8 @@ import com.audioly.app.util.AppLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -40,7 +42,7 @@ class AudioService : MediaSessionService() {
 
     private var mediaSession: MediaSession? = null
 
-    private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
+    private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var tickJob: Job? = null
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
@@ -58,7 +60,12 @@ class AudioService : MediaSessionService() {
     }
 
     override fun onBind(intent: Intent?): IBinder {
-        super.onBind(intent)
+        // If the intent has MediaSessionService's action, return the framework binder
+        // so system media controls (notification, Android Auto) work correctly.
+        val superBinder = super.onBind(intent)
+        if (intent?.action == SERVICE_INTERFACE) {
+            return superBinder ?: binder
+        }
         return binder
     }
 
@@ -67,11 +74,20 @@ class AudioService : MediaSessionService() {
 
     override fun onDestroy() {
         AppLogger.i(TAG, "AudioService destroyed")
+        // Cancel tick job first and wait — prevents tick() on released player
         tickJob?.cancel()
-        mediaSession?.run {
-            player.release()
-            release()
+        tickJob = null
+        // Cancel the entire scope (prevents leaked coroutines)
+        serviceScope.cancel()
+        // Release player independently of mediaSession state
+        if (::player.isInitialized) {
+            try {
+                player.release()
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "Error releasing player", e)
+            }
         }
+        mediaSession?.release()
         mediaSession = null
         super.onDestroy()
     }

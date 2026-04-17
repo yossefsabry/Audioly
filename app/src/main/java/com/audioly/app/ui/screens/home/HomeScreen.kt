@@ -1,12 +1,18 @@
 package com.audioly.app.ui.screens.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -27,7 +33,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.audioly.app.R
 import com.audioly.app.AudiolyApp
 import com.audioly.app.extraction.ExtractionResult
 import com.audioly.app.ui.components.TrackItem
@@ -61,6 +72,7 @@ fun HomeScreen(
                 onNavigateToPlayer = onNavigateToPlayer,
                 setError = { urlError = it },
                 setExtracting = { isExtracting = it },
+                isCurrentlyIdle = !isExtracting,
                 snackbarHostState = snackbarHostState,
             )
         }
@@ -69,12 +81,31 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Audioly") },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_audioly_logo),
+                                contentDescription = "Audioly Logo",
+                                modifier = Modifier.size(24.dp),
+                                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("Audioly")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = MaterialTheme.colorScheme.background,
                 ),
             )
         },
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(
@@ -82,13 +113,20 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp), // Increased spacing for modern airy feel
         ) {
-            Text(
-                "Play YouTube as audio",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "Play YouTube",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "As Audio",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+            }
 
             UrlInput(
                 value = urlInput,
@@ -101,6 +139,7 @@ fun HomeScreen(
                             onNavigateToPlayer = onNavigateToPlayer,
                             setError = { urlError = it },
                             setExtracting = { isExtracting = it },
+                            isCurrentlyIdle = !isExtracting,
                             snackbarHostState = snackbarHostState,
                         )
                     }
@@ -121,25 +160,29 @@ fun HomeScreen(
                         )
                     }
                 }
-                return@Column
-            }
-
-            HorizontalDivider()
-            Text("Recent", style = MaterialTheme.typography.titleMedium)
-
-            if (history.isEmpty()) {
-                Text(
-                    "No recent videos yet.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             } else {
-                LazyColumn {
-                    items(history, key = { it.videoId }) { track ->
-                        TrackItem(
-                            track = track,
-                            onClick = { onNavigateToPlayer(track.videoId) },
-                        )
+                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+
+                Text(
+                    "Recent",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                if (history.isEmpty()) {
+                    Text(
+                        "No recent videos yet.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    LazyColumn {
+                        items(history, key = { it.videoId }) { track ->
+                            TrackItem(
+                                track = track,
+                                onClick = { onNavigateToPlayer(track.videoId) },
+                            )
+                        }
                     }
                 }
             }
@@ -157,6 +200,7 @@ private suspend fun handleGo(
     onNavigateToPlayer: (String) -> Unit,
     setError: (String?) -> Unit,
     setExtracting: (Boolean) -> Unit,
+    isCurrentlyIdle: Boolean,
     snackbarHostState: androidx.compose.material3.SnackbarHostState,
 ) {
     val videoId = UrlValidator.extractVideoId(url)
@@ -165,6 +209,11 @@ private suspend fun handleGo(
         return
     }
     setError(null)
+    // Guard against concurrent extractions
+    if (!isCurrentlyIdle) {
+        AppLogger.w(TAG, "Extraction already in progress, ignoring duplicate request")
+        return
+    }
     setExtracting(true)
     try {
         AppLogger.i(TAG, "Extracting: $url")
@@ -176,6 +225,9 @@ private suspend fun handleGo(
                     AppLogger.e(TAG, "Failed to save track to DB", e)
                     // Non-fatal — continue to play even if DB write fails
                 }
+                // Clear old subtitle data and set new tracks
+                app.playerRepository.clearSubtitles()
+                app.playerRepository.setSubtitleTracks(result.streamInfo.subtitleTracks)
                 // Load audio into player
                 app.playerRepository.load(
                     audioUrl = result.streamInfo.audioStreamUrl,

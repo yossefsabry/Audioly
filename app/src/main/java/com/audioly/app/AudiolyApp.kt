@@ -69,7 +69,19 @@ class AudiolyApp : Application() {
 
         database = AudiolyDatabase.getInstance(this)
 
-        audioCacheManager = AudioCacheManager(this)
+        audioCacheManager = try {
+            AudioCacheManager(this)
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "Failed to create audio cache, retrying after cleanup", e)
+            // SimpleCache can fail if lock file is stale or directory is corrupted
+            try {
+                File(cacheDir, "audio_cache").deleteRecursively()
+                AudioCacheManager(this)
+            } catch (e2: Exception) {
+                AppLogger.fatal(TAG, "Audio cache creation failed even after cleanup", e2)
+                throw e2 // Unrecoverable — app cannot function without cache
+            }
+        }
 
         subtitleCacheManager = SubtitleCacheManager(
             subtitleRootDir = File(cacheDir, "subtitles"),
@@ -88,10 +100,12 @@ class AudiolyApp : Application() {
         preferencesRepository = UserPreferencesRepository(this)
 
         youTubeExtractor = YouTubeExtractor()
+
         AppLogger.i(TAG, "Application initialized")
     }
 
     override fun onTerminate() {
+        // Note: onTerminate() never runs on real devices, kept only for emulator completeness
         try {
             audioCacheManager.release()
         } catch (e: Exception) {

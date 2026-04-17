@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="512" height="512">
+    <!-- Black rounded background -->
+    <rect width="108" height="108" rx="24" fill="#000000" />
+    
+    <!-- White audio wave / play button shape -->
+    <path d="M 36 32 V 76 M 48 38 V 70 M 60 44 V 64 M 72 50 V 58" 
+          stroke="#FFFFFF" 
+          stroke-width="8" 
+          stroke-linecap="round" 
+          fill="none" />
+</svg>

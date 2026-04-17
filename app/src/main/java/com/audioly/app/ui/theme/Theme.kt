@@ -1,14 +1,20 @@
 package com.audioly.app.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+
+private val AudiolyShapes = Shapes(
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(16.dp),
+    large = RoundedCornerShape(24.dp),
+    extraLarge = RoundedCornerShape(32.dp)
+)
 
 private val LightColorScheme = lightColorScheme(
     primary = md_theme_light_primary,
@@ -48,29 +54,22 @@ private val DarkColorScheme = darkColorScheme(
     onError = md_theme_dark_onError,
 )
 
-/**
- * @param darkTheme null = follow system, true = force dark, false = force light
- */
 @Composable
 fun AudiolyTheme(
     darkTheme: Boolean? = null,
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // Ignored now but keeping parameter for compatibility
     content: @Composable () -> Unit
 ) {
     val isDark = darkTheme ?: isSystemInDarkTheme()
 
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        isDark -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    // Force custom theme colors instead of Material You dynamic colors
+    // to preserve the strict black/white/cream finance app aesthetic
+    val colorScheme = if (isDark) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,
         typography = AudiolyTypography,
+        shapes = AudiolyShapes,
         content = content
     )
 }

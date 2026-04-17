@@ -127,7 +127,7 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
     // NewPipe Extractor
-    implementation("com.github.TeamNewPipe.NewPipeExtractor:extractor:v0.24.2")
+    implementation("com.github.TeamNewPipe.NewPipeExtractor:extractor:v0.26.1")
 
     // Coil (image loading)
     implementation("io.coil-kt:coil-compose:2.6.0")

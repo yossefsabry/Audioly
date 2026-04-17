@@ -18,10 +18,12 @@ object VttParser {
 
     private val TAG_REGEX = Regex("""<[^>]+>""")
 
+    private val BLOCK_SEPARATOR = Regex("""\r?\n\r?\n+""")
+
     fun parse(content: String): List<SubtitleCue> {
         val cues = mutableListOf<SubtitleCue>()
         // Split into blocks separated by one or more blank lines
-        val blocks = content.split(Regex("""\r?\n\r?\n+"""))
+        val blocks = content.split(BLOCK_SEPARATOR)
 
         for (block in blocks) {
             val lines = block.trim().lines()
