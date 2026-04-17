@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login &amp; Register - Rayeh Gaay</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#8B3DFF",
+              "background-light": "#F9FAFB",
+              "background-dark": "#111827",
+              "card-light": "#FFFFFF",
+              "card-dark": "#1F2937",
+            },
+            fontFamily: {
+              sans: ["Inter", "sans-serif"],
+              display: ["Inter", "sans-serif"],
+            },
+            borderRadius: {
+              DEFAULT: "12px",
+            },
+          },
+        },
+      };
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex flex-col items-center justify-center p-6 transition-colors duration-300">
+<div class="h-12 w-full"></div>
+<div class="w-full max-w-md flex flex-col items-center">
+<div class="mb-10 text-center">
+<div class="w-20 h-20 bg-primary rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-white text-5xl">local_shipping</span>
+</div>
+<h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Rayeh Gaay</h1>
+<p class="text-gray-500 dark:text-gray-400 mt-2 font-medium">Connect. Travel. Deliver.</p>
+</div>
+<div class="w-full bg-card-light dark:bg-card-dark rounded-[32px] p-8 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="bg-gray-100 dark:bg-gray-800 p-1 rounded-2xl flex mb-8">
+<button class="flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 bg-white dark:bg-gray-700 text-primary shadow-sm" id="loginTab" onclick="toggleAuth('login')">
+                    Login
+                </button>
+<button class="flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 text-gray-500 dark:text-gray-400" id="registerTab" onclick="toggleAuth('register')">
+                    Sign Up
+                </button>
+</div>
+<div class="space-y-5">
+<div class="space-y-5" id="loginForm">
+<div class="space-y-2">
+<label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider ml-1">Email Address</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl">mail</span>
+<input class="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl focus:ring-2 focus:ring-primary text-gray-900 dark:text-white placeholder-gray-400 transition-all" placeholder="name@example.com" type="email"/>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-center ml-1">
+<label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Password</label>
+<a class="text-xs font-semibold text-primary hover:underline" href="#">Forgot?</a>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl">lock</span>
+<input class="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl focus:ring-2 focus:ring-primary text-gray-900 dark:text-white placeholder-gray-400 transition-all" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<button class="w-full bg-primary hover:bg-opacity-90 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/25 transition-all active:scale-[0.98] mt-2">
+                        Sign In
+                    </button>
+</div>
+<div class="space-y-5 hidden" id="registerForm">
+<div class="space-y-2">
+<label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider ml-1">Full Name</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl">person</span>
+<input class="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl focus:ring-2 focus:ring-primary text-gray-900 dark:text-white placeholder-gray-400 transition-all" placeholder="John Doe" type="text"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider ml-1">Email Address</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl">mail</span>
+<input class="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl focus:ring-2 focus:ring-primary text-gray-900 dark:text-white placeholder-gray-400 transition-all" placeholder="name@example.com" type="email"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider ml-1">Create Password</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl">lock</span>
+<input class="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl focus:ring-2 focus:ring-primary text-gray-900 dark:text-white placeholder-gray-400 transition-all" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<button class="w-full bg-primary hover:bg-opacity-90 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/25 transition-all active:scale-[0.98] mt-2">
+                        Create Account
+                    </button>
+</div>
+<div class="relative py-4">
+<div class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-gray-100 dark:border-gray-800"></div>
+</div>
+<div class="relative flex justify-center text-xs uppercase">
+<span class="bg-card-light dark:bg-card-dark px-4 text-gray-400 font-medium tracking-widest">Or continue with</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<button class="flex items-center justify-center gap-2 py-3.5 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 border border-gray-100 dark:border-gray-700 rounded-2xl transition-all">
+<img alt="Google Logo" class="w-5 h-5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGfRMR3JuUG-SB_mZghVYjxHM5ztWRpzktsnQYwD0QggZZ8i57ZkpRkzPqb515ZtfVhVykgycA9quWgpMJfBpY45XQRY7n4tnizkZXqgKMIbUm7seZhndj55v2A36qM-TtkBzJ1avxbBwsbdp37hiO0HFIpdspHpUUFNCHxAqzyHgWfwbFE1Oj1F1tjrNRPb6PEWIpR9Z2RtWZVz4L6KpvOSxqUa8i9g2zJViQ8L9QJQka7d5QNfASd9tRow-pbc0_v5I3zd8ZgVU"/>
+<span class="text-sm font-semibold text-gray-700 dark:text-gray-200">Google</span>
+</button>
+<button class="flex items-center justify-center gap-2 py-3.5 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 border border-gray-100 dark:border-gray-700 rounded-2xl transition-all">
+<svg class="w-5 h-5 text-[#1877F2]" fill="currentColor" viewBox="0 0 24 24">
+<path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"></path>
+</svg>
+<span class="text-sm font-semibold text-gray-700 dark:text-gray-200">Facebook</span>
+</button>
+</div>
+</div>
+</div>
+<p class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400 px-8">
+            By joining, you agree to our <a class="text-primary font-semibold hover:underline" href="#">Terms of Service</a> and <a class="text-primary font-semibold hover:underline" href="#">Privacy Policy</a>.
+        </p>
+</div>
+<script>
+        function toggleAuth(mode) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const loginTab = document.getElementById('loginTab');
+            const registerTab = document.getElementById('registerTab');
+            if (mode === 'login') {
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+                loginTab.classList.add('bg-white', 'dark:bg-gray-700', 'text-primary', 'shadow-sm');
+                loginTab.classList.remove('text-gray-500', 'dark:text-gray-400');
+                registerTab.classList.remove('bg-white', 'dark:bg-gray-700', 'text-primary', 'shadow-sm');
+                registerTab.classList.add('text-gray-500', 'dark:text-gray-400');
+            } else {
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+                registerTab.classList.add('bg-white', 'dark:bg-gray-700', 'text-primary', 'shadow-sm');
+                registerTab.classList.remove('text-gray-500', 'dark:text-gray-400');
+                loginTab.classList.remove('bg-white', 'dark:bg-gray-700', 'text-primary', 'shadow-sm');
+                loginTab.classList.add('text-gray-500', 'dark:text-gray-400');
+            }
+        }
+    </script>
+
+</body></html>

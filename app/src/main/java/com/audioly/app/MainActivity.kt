@@ -1,0 +1,165 @@
+package com.audioly.app
+
+import android.content.Intent
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.audioly.app.data.preferences.UserPreferences
+import com.audioly.app.ui.navigation.Screen
+import com.audioly.app.ui.navigation.bottomNavItems
+import com.audioly.app.ui.screens.home.HomeScreen
+import com.audioly.app.ui.screens.library.LibraryScreen
+import com.audioly.app.ui.screens.player.PlayerScreen
+import com.audioly.app.ui.screens.settings.SettingsScreen
+import com.audioly.app.ui.screens.logs.LogViewerScreen
+import com.audioly.app.ui.theme.AudiolyTheme
+import com.audioly.app.util.AppLogger
+import com.audioly.app.util.UrlValidator
+import com.audioly.app.player.PlaybackController
+
+class MainActivity : ComponentActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val initialUrl = intent?.resolveSharedUrl()
+        val app = application as AudiolyApp
+
+        // Bind to AudioService and wire PlayerRepository
+        val playbackController = PlaybackController(this, app.playerRepository)
+        lifecycle.addObserver(playbackController)
+
+        setContent {
+            // Read theme preference
+            val prefs by app.preferencesRepository.preferences.collectAsState(
+                initial = UserPreferences()
+            )
+            val darkTheme = when (prefs.themeMode) {
+                UserPreferences.THEME_LIGHT -> false
+                UserPreferences.THEME_DARK -> true
+                else -> null // null = follow system
+            }
+
+            AudiolyTheme(darkTheme = darkTheme) {
+                AudiolyMainContent(initialUrl = initialUrl, app = app)
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        // For singleTask, new shares while already open
+        // In a full impl we'd update a MutableState; for now covered by the existing flow
+    }
+
+    /**
+     * Extract the raw shared text (URL) from a SEND intent.
+     * Returns the full URL string, NOT the videoId — so HomeScreen can handle extraction.
+     */
+    private fun Intent.resolveSharedUrl(): String? {
+        if (action != Intent.ACTION_SEND) return null
+        val text = getStringExtra(Intent.EXTRA_TEXT) ?: return null
+        // Validate it's actually a YouTube URL before passing it along
+        val result = if (UrlValidator.isValid(text)) text else null
+        if (result != null) {
+            AppLogger.i("MainActivity", "Share intent received: $text")
+        }
+        return result
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AudiolyMainContent(initialUrl: String?, app: AudiolyApp) {
+    val navController = rememberNavController()
+
+    // Track whether the share intent URL has been consumed
+    var consumedInitialUrl by remember { mutableStateOf(false) }
+
+    Scaffold(
+        bottomBar = {
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentDest = navBackStackEntry?.destination
+            // Hide bottom bar on player and logs screens
+            val showBottomBar = currentDest?.route?.startsWith("player/") != true
+                && currentDest?.route != Screen.Logs.route
+            if (showBottomBar) {
+                NavigationBar {
+                    bottomNavItems.forEach { item ->
+                        val selected = currentDest?.hierarchy?.any { it.route == item.screen.route } == true
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = {
+                                navController.navigate(item.screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
+                                    contentDescription = item.label
+                                )
+                            },
+                            label = { Text(item.label) }
+                        )
+                    }
+                }
+            }
+        }
+    ) { innerPadding ->
+        Box(modifier = Modifier.padding(innerPadding)) {
+            NavHost(navController = navController, startDestination = Screen.Home.route) {
+                composable(Screen.Home.route) {
+                    // Pass the initial URL from share intent (consumed once)
+                    val urlForHome = if (!consumedInitialUrl) {
+                        consumedInitialUrl = true
+                        initialUrl
+                    } else null
+
+                    HomeScreen(
+                        app = app,
+                        onNavigateToPlayer = { videoId ->
+                            navController.navigate(Screen.Player.createRoute(videoId))
+                        },
+                        initialUrl = urlForHome,
+                    )
+                }
+                composable(Screen.Library.route) {
+                    LibraryScreen(
+                        app = app,
+                        onNavigateToPlayer = { videoId ->
+                            navController.navigate(Screen.Player.createRoute(videoId))
+                        },
+                    )
+                }
+                composable(Screen.Settings.route) {
+                    SettingsScreen(
+                        app = app,
+                        onNavigateToLogs = { navController.navigate(Screen.Logs.route) },
+                    )
+                }
+                composable(Screen.Logs.route) {
+                    LogViewerScreen(onNavigateUp = { navController.popBackStack() })
+                }
+                composable("player/{videoId}") { _ ->
+                    PlayerScreen(
+                        playerRepository = app.playerRepository,
+                        onNavigateUp = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+    }
+}

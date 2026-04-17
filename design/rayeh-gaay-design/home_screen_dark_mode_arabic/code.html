@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html class="dark" dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>رايح جاي - توصيل مع المسافرين</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&amp;family=Material+Icons+Outlined&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#9333ea", // Vibrant Purple from screenshot
+                        "background-light": "#f9fafb",
+                        "background-dark": "#0f172a", // Deep Navy/Dark background
+                        "card-dark": "#1e293b",
+                    },
+                    fontFamily: {
+                        display: ["Cairo", "sans-serif"],
+                        body: ["Cairo", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "12px",
+                        "xl": "20px",
+                    },
+                },
+            },
+        };
+    </script>
+<style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 transition-colors duration-300">
+<header class="sticky top-0 z-50 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+<div class="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="bg-primary p-1.5 rounded-lg">
+<span class="material-icons-outlined text-white text-xl">local_shipping</span>
+</div>
+<span class="text-xl font-bold text-primary">رايح جاي</span>
+</div>
+<button class="p-2 text-slate-600 dark:text-slate-300">
+<span class="material-icons-outlined text-2xl">menu</span>
+</button>
+</div>
+</header>
+<main class="max-w-md mx-auto px-4 pb-24">
+<section class="py-8 text-center">
+<h1 class="text-3xl font-extrabold mb-4 text-slate-900 dark:text-white leading-tight">تواصل. سافر. وصّل.</h1>
+<p class="text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
+                انضم إلى أكبر شبكة شحن طرود بين الأفراد في مصر. تواصل مع مسافرين موثوقين لضمان وصول طردك بأمان.
+            </p>
+<div class="relative group">
+<div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+<span class="material-icons-outlined text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+</div>
+<input class="w-full py-4 pr-12 pl-24 bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-full focus:ring-2 focus:ring-primary focus:border-transparent outline-none shadow-sm text-sm" placeholder="إلى أين تريد إرسال شحنتك؟" type="text"/>
+<button class="absolute inset-y-1.5 left-1.5 px-6 bg-primary text-white rounded-full font-semibold hover:opacity-90 transition-opacity">
+                    بحث
+                </button>
+</div>
+</section>
+<div class="grid grid-cols-1 gap-3 mb-10">
+<div class="flex items-center gap-4 p-4 bg-white dark:bg-card-dark rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+<div class="w-12 h-12 flex items-center justify-center bg-purple-100 dark:bg-purple-900/30 rounded-xl text-primary">
+<span class="material-icons-outlined">verified_user</span>
+</div>
+<div class="text-right">
+<h3 class="font-bold text-sm">مستخدمون موثقون</h3>
+<p class="text-xs text-slate-500 dark:text-slate-400">هوية مؤكدة لجميع المسافرين</p>
+</div>
+</div>
+<div class="flex items-center gap-4 p-4 bg-white dark:bg-card-dark rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+<div class="w-12 h-12 flex items-center justify-center bg-purple-100 dark:bg-purple-900/30 rounded-xl text-primary">
+<span class="material-icons-outlined">stars</span>
+</div>
+<div class="text-right">
+<h3 class="font-bold text-sm">نظام تقييم دقيق</h3>
+<p class="text-xs text-slate-500 dark:text-slate-400">تقييمات حقيقية من مجتمعنا</p>
+</div>
+</div>
+<div class="flex items-center gap-4 p-4 bg-white dark:bg-card-dark rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+<div class="w-12 h-12 flex items-center justify-center bg-purple-100 dark:bg-purple-900/30 rounded-xl text-primary">
+<span class="material-icons-outlined">speed</span>
+</div>
+<div class="text-right">
+<h3 class="font-bold text-sm">توصيل سريع</h3>
+<p class="text-xs text-slate-500 dark:text-slate-400">شحنتك تصل في نفس اليوم</p>
+</div>
+</div>
+</div>
+<section class="py-6 mb-8 text-center">
+<h2 class="text-2xl font-bold mb-4 text-primary">اكتشف مصر مع رايح جاي</h2>
+<p class="text-sm text-slate-600 dark:text-slate-400 mb-6 px-4">
+                تواصل مع المسافرين، وفر في تكاليف الشحن، واستمتع بتجربة فريدة وآمنة. سواء كنت ترسل طرداً أو تخطط لرحلة، رايح جاي يجعل الأمر سهلاً.
+            </p>
+<button class="bg-primary hover:bg-purple-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-purple-500/20 transition-all active:scale-95">
+                ابدأ الاستكشاف
+            </button>
+</section>
+<div class="grid grid-cols-2 gap-4 mb-10">
+<div class="bg-white dark:bg-card-dark p-5 rounded-3xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden">
+<div class="absolute -bottom-4 -right-4 text-slate-50 dark:text-slate-800/20 opacity-20">
+<span class="material-icons-outlined text-7xl">people</span>
+</div>
+<span class="text-slate-500 dark:text-slate-400 text-xs mb-1">المستخدمين النشطين</span>
+<span class="text-2xl font-black">1,247</span>
+</div>
+<div class="bg-emerald-500 p-5 rounded-3xl flex flex-col items-center justify-center text-center shadow-lg shadow-emerald-500/20 relative overflow-hidden">
+<div class="absolute -bottom-4 -right-4 text-white/20">
+<span class="material-icons-outlined text-7xl">local_shipping</span>
+</div>
+<span class="text-white/80 text-xs mb-1">تسليمات اليوم</span>
+<span class="text-white text-2xl font-black">89</span>
+</div>
+</div>
+<div class="bg-white dark:bg-card-dark p-6 rounded-3xl border border-slate-100 dark:border-slate-800 mb-10 shadow-sm">
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-2">
+<span class="material-icons-outlined text-primary">timeline</span>
+<h3 class="font-bold">اتصالات مباشرة</h3>
+</div>
+<div class="flex gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500/50"></span>
+</div>
+</div>
+<div class="space-y-4 mb-6">
+<div class="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-emerald-400 w-3/4"></div>
+</div>
+<div class="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-amber-400 w-1/2"></div>
+</div>
+<div class="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-rose-400 w-2/3"></div>
+</div>
+</div>
+<div class="flex items-center justify-between text-[10px] text-slate-400">
+<div class="flex items-center gap-1">
+<span class="material-icons-outlined text-xs">schedule</span>
+<span>تحديث حي للرحلات المتاحة</span>
+</div>
+<span>القاهرة • الإسكندرية • الغردقة</span>
+</div>
+</div>
+<section class="bg-purple-50 dark:bg-purple-900/10 -mx-4 px-4 py-8 mb-10">
+<div class="text-center mb-6">
+<h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">مسافرون متميزون</h2>
+<p class="text-xs text-slate-500 dark:text-slate-400">أفضل المسافرين الموثوقين المتاحين الآن للتوصيل</p>
+</div>
+<div class="space-y-4">
+<div class="bg-white dark:bg-card-dark p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+<div class="flex gap-4 mb-4">
+<img alt="أحمد علي" class="w-16 h-16 rounded-2xl object-cover ring-2 ring-primary/20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBsjQK274P4Z00ZLRzdHy74-X51sU6mBCHPgRWLpIJrm01JnCTg5onukTu_ItVPv3IuTB9BYaqSUpYwJX-fNYF07eI5CHq5HDGVBU95mIWBwmtUUx1QUwmpQgofdIkX8Zn-RdPKf9O6FWJhXrUCSnOSsY-UGcuRHiA-6Lg2YS3nt3LSN7XElYwT2dxe-N0Tvt0L2GazqISqUY0mvlGMM3PPRR3D5nj-srSdIXgaHlwP_sEG6U-KmNGgMW2l6UjaYou6WNrJbp6c7_8"/>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-bold text-lg leading-none mb-1">أحمد علي</h4>
+<span class="text-xs text-slate-400">28 سنة</span>
+</div>
+<span class="bg-purple-100 dark:bg-purple-900/30 text-primary text-[10px] px-2 py-0.5 rounded-full font-bold">موثق</span>
+</div>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-icons-outlined text-amber-400 text-sm">star</span>
+<span class="text-xs font-bold">4.8</span>
+<span class="text-[10px] text-slate-400 mr-1">(120 تقييم)</span>
+</div>
+</div>
+</div>
+<div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl mb-4 text-xs space-y-2">
+<div class="flex items-center gap-2">
+<span class="material-icons-outlined text-primary text-sm">route</span>
+<span class="font-semibold">القاهرة ← الإسكندرية</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 italic">"مسافر للإسكندرية نهاية الأسبوع، يسعدني نقل الطرود الصغيرة والمتوسطة!"</p>
+</div>
+<button class="w-full bg-primary text-white py-3 rounded-xl font-bold active:scale-95 transition-all">تواصل مع أحمد</button>
+</div>
+<div class="bg-white dark:bg-card-dark p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm opacity-90">
+<div class="flex gap-4 mb-4">
+<img alt="فاطمة حسن" class="w-16 h-16 rounded-2xl object-cover ring-2 ring-primary/20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIpVF-BhNTSidWXrGZWEcHQQJWA8l1bjNBURjBMd6U4_HewhanIYWrw-IogS71wVw-KOKdaoQnlPJuoBZLIPY1O5_8A_Kcb0oqvJ3SylEgeXhHAfzZKa9bm1UFuAELQoIRDHnh087O-9aJJh-ff92od65MhmmY0RfU1FVTZ9g10MwyQkq8oSXDJDzphRZqpAoo5CLI2c3rSGSGKJGM3niNPw5UnkfDYOA9qpYrWviK58SZFVZL64ZbXDbZbKTFHv_zNxSRK1jQT1A"/>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-bold text-lg leading-none mb-1">فاطمة حسن</h4>
+<span class="text-xs text-slate-400">25 سنة</span>
+</div>
+<span class="bg-purple-100 dark:bg-purple-900/30 text-primary text-[10px] px-2 py-0.5 rounded-full font-bold">موثقة</span>
+</div>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-icons-outlined text-amber-400 text-sm">star</span>
+<span class="text-xs font-bold">4.9</span>
+<span class="text-[10px] text-slate-400 mr-1">(85 تقييم)</span>
+</div>
+</div>
+</div>
+<div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl mb-4 text-xs space-y-2">
+<div class="flex items-center gap-2">
+<span class="material-icons-outlined text-primary text-sm">route</span>
+<span class="font-semibold">الإسكندرية ← القاهرة</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 italic">"عائدة للقاهرة يوم الأحد. ملتزمة بالمواعيد وشحنتك في أمان."</p>
+</div>
+<button class="w-full bg-primary text-white py-3 rounded-xl font-bold active:scale-95 transition-all">تواصل مع فاطمة</button>
+</div>
+</div>
+<button class="w-full mt-6 py-3 text-primary font-bold text-sm underline">عرض جميع المسافرين</button>
+</section>
+<section class="py-10 text-center">
+<h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">كيف يعمل رايح جاي؟</h2>
+<p class="text-xs text-slate-500 dark:text-slate-400 mb-10">بسيط، آمن، وموثوق في 3 خطوات سهلة</p>
+<div class="space-y-12">
+<div class="flex flex-col items-center">
+<div class="w-16 h-16 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center text-primary mb-4 relative">
+<span class="material-icons-outlined text-3xl">search</span>
+<div class="absolute -top-1 -right-1 w-6 h-6 bg-primary text-white text-[10px] flex items-center justify-center rounded-full font-bold">1</div>
+</div>
+<h4 class="font-bold mb-2">ابحث</h4>
+<p class="text-xs text-slate-500 dark:text-slate-400 px-10">ابحث عن المسافرين المتجهين إلى وجهتك المطلوبة</p>
+</div>
+<div class="flex flex-col items-center">
+<div class="w-16 h-16 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center text-primary mb-4 relative">
+<span class="material-icons-outlined text-3xl">chat</span>
+<div class="absolute -top-1 -right-1 w-6 h-6 bg-primary text-white text-[10px] flex items-center justify-center rounded-full font-bold">2</div>
+</div>
+<h4 class="font-bold mb-2">تواصل</h4>
+<p class="text-xs text-slate-500 dark:text-slate-400 px-10">تحدث مع المسافر مباشرة لترتيب استلام وتسليم الطرد</p>
+</div>
+<div class="flex flex-col items-center">
+<div class="w-16 h-16 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center text-primary mb-4 relative">
+<span class="material-icons-outlined text-3xl">local_shipping</span>
+<div class="absolute -top-1 -right-1 w-6 h-6 bg-primary text-white text-[10px] flex items-center justify-center rounded-full font-bold">3</div>
+</div>
+<h4 class="font-bold mb-2">استلم</h4>
+<p class="text-xs text-slate-500 dark:text-slate-400 px-10">يصل طردك بأمان مع عضو موثوق من المجتمع</p>
+</div>
+</div>
+</section>
+<section class="py-12 bg-slate-900 rounded-[40px] px-6 text-center text-white mb-20 overflow-hidden relative">
+<div class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(147,51,234,0.15),transparent)]"></div>
+<h2 class="text-2xl font-bold mb-8 relative z-10">لماذا تختار رايح جاي؟</h2>
+<div class="grid grid-cols-1 gap-6 relative z-10">
+<div class="p-6 bg-white/5 backdrop-blur-sm rounded-3xl border border-white/10 text-right">
+<h4 class="font-bold text-primary mb-2 flex items-center gap-2">
+<span class="material-icons-outlined text-xl">groups</span>
+                        مجتمع موثوق
+                    </h4>
+<p class="text-xs text-slate-400">جميع مسافرينا موثقون بالهوية لراحة بالك وضمان أمان شحنتك.</p>
+</div>
+<div class="p-6 bg-white/5 backdrop-blur-sm rounded-3xl border border-white/10 text-right">
+<h4 class="font-bold text-primary mb-2 flex items-center gap-2">
+<span class="material-icons-outlined text-xl">payments</span>
+                        توفير حقيقي
+                    </h4>
+<p class="text-xs text-slate-400">وفر حتى 60% من تكاليف الشحن التقليدية عبر التواصل المباشر.</p>
+</div>
+<div class="p-6 bg-white/5 backdrop-blur-sm rounded-3xl border border-white/10 text-right">
+<h4 class="font-bold text-primary mb-2 flex items-center gap-2">
+<span class="material-icons-outlined text-xl">support_agent</span>
+                        دعم فني متميز
+                    </h4>
+<p class="text-xs text-slate-400">فريقنا متاح دائماً لمساعدتك في أي استفسار أو مشكلة تواجهك.</p>
+</div>
+</div>
+</section>
+</main>
+<div class="fixed bottom-0 left-0 right-0 z-[100] p-4 transform translate-y-0 transition-transform duration-500" id="cookie-banner">
+<div class="max-w-md mx-auto bg-white dark:bg-card-dark rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-primary/10 rounded-xl text-primary">
+<span class="material-icons-outlined">cookie</span>
+</div>
+<div>
+<h4 class="font-bold text-sm">نحن نهتم بخصوصيتك</h4>
+<p class="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">نستخدم ملفات تعريف الارتباط لتحسين تجربتك على المنصة.</p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-slate-600" onclick="document.getElementById('cookie-banner').classList.add('translate-y-full')">
+<span class="material-icons-outlined text-lg">close</span>
+</button>
+</div>
+<div class="space-y-3 mb-6">
+<div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+<div class="flex flex-col">
+<span class="text-xs font-bold">الكوكيز الضرورية</span>
+<span class="text-[9px] text-slate-500">مطلوبة لعمل الموقع بشكل صحيح.</span>
+</div>
+<div class="w-10 h-5 bg-emerald-500 rounded-full relative">
+<div class="absolute right-0.5 top-0.5 w-4 h-4 bg-white rounded-full"></div>
+</div>
+</div>
+<div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+<div class="flex flex-col">
+<span class="text-xs font-bold">كوكيز التفضيلات</span>
+<span class="text-[9px] text-slate-500">تساعدنا في تذكر إعداداتك المفضلة.</span>
+</div>
+<div class="w-10 h-5 bg-slate-300 dark:bg-slate-600 rounded-full relative">
+<div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full"></div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-2">
+<button class="w-full bg-primary text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-primary/20 active:scale-[0.98] transition-all">قبول الكل</button>
+<button class="w-full bg-transparent text-slate-500 dark:text-slate-400 py-2 text-xs font-medium hover:text-primary transition-colors">رفض الكل</button>
+</div>
+<div class="text-center mt-4">
+<a class="text-[10px] text-primary underline" href="#">تعرف على المزيد حول سياسة الكوكيز</a>
+</div>
+</div>
+</div>
+<nav class="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-background-dark/80 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 pb-safe z-40">
+<div class="max-w-md mx-auto px-6 h-16 flex items-center justify-between">
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-icons-outlined text-2xl">home</span>
+<span class="text-[10px] font-bold">الرئيسية</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-icons-outlined text-2xl">explore</span>
+<span class="text-[10px]">استكشف</span>
+</button>
+<div class="relative -top-6">
+<button class="w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-xl shadow-primary/30 active:scale-90 transition-transform">
+<span class="material-icons-outlined text-3xl">add</span>
+</button>
+</div>
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-icons-outlined text-2xl">chat_bubble_outline</span>
+<span class="text-[10px]">محادثاتي</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-icons-outlined text-2xl">person_outline</span>
+<span class="text-[10px]">بروفايلي</span>
+</button>
+</div>
+</nav>
+<script>
+        // Set Arabic locale for material icons if needed (mostly font-family handles it)
+        document.documentElement.lang = "ar";
+        document.documentElement.dir = "rtl";
+    </script>
+
+</body></html>

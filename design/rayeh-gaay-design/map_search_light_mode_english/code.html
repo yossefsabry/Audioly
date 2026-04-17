@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Rayeh Gaay - Map Search</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#8B3DFF",
+                        secondary: "#22C55E",
+                        "background-light": "#F8F9FA",
+                        "background-dark": "#121212",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "12px",
+                    },
+                },
+            },
+        };
+    </script>
+<style>
+        .map-gradient {
+            background: radial-gradient(circle at center, #e0f2fe 0%, #f0f9ff 100%);
+        }
+        .dark .map-gradient {
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+        .dark .glass-panel {
+            background: rgba(30, 30, 30, 0.9);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased overflow-hidden">
+<div class="h-11 w-full bg-white dark:bg-black flex items-center justify-between px-6 shrink-0 z-50">
+<span class="text-sm font-semibold">9:41</span>
+<div class="flex items-center gap-1">
+<span class="material-icons-round text-lg">signal_cellular_alt</span>
+<span class="material-icons-round text-lg">wifi</span>
+<span class="material-icons-round text-lg">battery_full</span>
+</div>
+</div>
+<main class="relative h-[calc(100vh-44px)] w-full overflow-hidden">
+<div class="absolute inset-0 map-gradient flex items-center justify-center">
+<svg class="absolute inset-0 w-full h-full opacity-20 dark:opacity-10" height="100%" width="100%">
+<defs>
+<pattern height="100" id="grid" patternUnits="userSpaceOnUse" width="100">
+<path d="M 100 0 L 0 0 0 100" fill="none" stroke="currentColor" stroke-width="1"></path>
+</pattern>
+</defs>
+<rect fill="url(#grid)" height="100%" width="100%"></rect>
+</svg>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+<div class="relative flex flex-col items-center">
+<div class="w-12 h-12 bg-primary rounded-full border-4 border-white dark:border-slate-800 shadow-xl overflow-hidden ring-4 ring-primary/20 animate-bounce">
+<img alt="Ahmed Ali" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAN1--rX42ZmAXJx4xQ2D6RGAOtIoQ6M00uB-S5zzGNx5ukfMABjExx1jo1OWVH-tN5q8X7YqFv-uqvUfCd1kzalzi8pNEPxv0uxd16-00MMbbvAx4588vghbA1hLoaM9us0gIGj6e7sTVr3a8LWHpIGc-B77CdmiqVBj6x4VpfGnDdbU_Yh17T2EbptM6tAxNhBTPpn-0zc5p7dOxBHpKaLuW6Hd1wdsx8d_AUzp2jokJ1cA5os1HPCw6sTQ8xxXfeBYvWJHpe7YA"/>
+</div>
+<div class="bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full mt-1">Ahmed</div>
+<div class="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-primary"></div>
+</div>
+</div>
+<div class="absolute top-[35%] right-[25%] z-10 opacity-80">
+<div class="relative flex flex-col items-center">
+<div class="w-10 h-10 bg-slate-400 rounded-full border-2 border-white dark:border-slate-800 shadow-lg overflow-hidden">
+<img alt="Fatma Hassan" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDowgytZp4ZOt9kILiGO6Txwj3SO-360c7EREfn2LfFh_0z1ZxLsonbKHN7Jm-nFlme0_hk0VIPgTb9u84AtRxRzphcjBcOEEIfZ33KzV_k81uEsZOfpfdFGRIFN5Bz3ICJsvmZ9nKZ2uYUdu1940aMmeEcpuurMmm_hwdhtlaZHtGRWvFOpo_tJgEDXjltjXa34oSKk0tr5x-kF0JTB7boX9XSfNBnq0a2scdwmRE9RPlCs6gizQKiYSTjtaCjZ7WzAcNwwgg-_d0"/>
+</div>
+<div class="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[6px] border-t-slate-400"></div>
+</div>
+</div>
+<div class="absolute bottom-[40%] left-[20%] z-10 opacity-80">
+<div class="relative flex flex-col items-center">
+<div class="w-10 h-10 bg-slate-400 rounded-full border-2 border-white dark:border-slate-800 shadow-lg overflow-hidden">
+<img alt="Omar Mostafa" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAc02jS639Sp0JH9EXXN8TjkCXy7ahFArxG6Y87KjhGuxRGwn5JtA_RAtSTwdS-IZ6jzzD-KcndkfGD4oX-jNqfCjF22qh8Q7FE6909ZVYTnRKmgy0hHJ3-T__cT-CkYfdcjjJKhYJdN0XxZYWOMUOTBSQ7gZ6TjkSgBcvTkGTb0aLlhywCSi7w0mK__jn5MeJRhN-uwRP4N31_flp_Fs6SnC9HH1ry969mgy4TNuHohdc69As5JpzNKMGUcc5gCN6BytWJjKkQ_Dk"/>
+</div>
+<div class="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[6px] border-t-slate-400"></div>
+</div>
+</div>
+<div class="absolute bottom-[30%] right-[30%]">
+<div class="relative">
+<div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white z-10 relative"></div>
+<div class="absolute inset-0 w-4 h-4 bg-blue-500 rounded-full animate-ping"></div>
+<div class="absolute inset-[-12px] w-10 h-10 bg-blue-500/10 rounded-full"></div>
+</div>
+</div>
+</div>
+<div class="absolute top-4 left-0 right-0 px-4 z-40">
+<div class="glass-panel rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-3">
+<div class="flex items-center gap-3">
+<div class="flex-1 flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-2.5">
+<span class="material-icons-round text-slate-400 text-xl mr-2">search</span>
+<input class="bg-transparent border-none p-0 text-sm focus:ring-0 w-full placeholder:text-slate-500" placeholder="Where do you need delivery?" type="text"/>
+</div>
+<button class="bg-primary text-white p-2.5 rounded-xl flex items-center justify-center">
+<span class="material-icons-round text-xl">tune</span>
+</button>
+</div>
+</div>
+</div>
+<div class="absolute right-4 bottom-72 flex flex-col gap-3 z-30">
+<button class="w-12 h-12 glass-panel rounded-full shadow-lg flex items-center justify-center text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+<span class="material-icons-round">my_location</span>
+</button>
+<button class="w-12 h-12 glass-panel rounded-full shadow-lg flex items-center justify-center text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+<span class="material-icons-round">layers</span>
+</button>
+</div>
+<div class="absolute bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 rounded-t-[32px] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.15)] border-t border-slate-100 dark:border-slate-800 pb-8 px-5">
+<div class="flex justify-center py-3">
+<div class="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+</div>
+<div class="flex items-start justify-between mt-2">
+<div class="flex gap-4">
+<div class="relative">
+<img alt="Ahmed Profile" class="w-16 h-16 rounded-2xl object-cover shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAm7LTa_Lm8J1rnaxW8-5eSbUQT7EujAHPA-RiynXbCxb-OusB0vt0llBQH4zw4ToUOXtrmbp7zrx2D4qkMOfpGOZocCwSp8DDevXEwvkBlcHOFZ37MqvDk4Lie5Wb4rc8jyU9DfRse5GYSCqZIApASfaeqgBta3meVCN1LNYxtTB4O5esHCw4jCjpITyu3seOD2wpmASOIN2Df478ecUaGnhLIIKKvKghkT_jQLZZo76YGnY9mmonhVBCkUVBram3-hoyGYqAlDsM"/>
+<div class="absolute -bottom-1 -right-1 bg-secondary w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center">
+<span class="material-icons-round text-[10px] text-white">verified</span>
+</div>
+</div>
+<div>
+<h2 class="text-xl font-bold">Ahmed Ali</h2>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Age 28</span>
+<div class="flex items-center">
+<span class="material-icons-round text-yellow-400 text-sm">star</span>
+<span class="text-sm font-semibold ml-1">4.9</span>
+<span class="text-xs text-slate-400 ml-1">(124)</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-xs font-bold text-primary px-2 py-1 bg-primary/10 rounded-lg">TRUSTED</span>
+<span class="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">Active Now</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-3 mt-6">
+<div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+<p class="text-[10px] text-slate-400 uppercase font-bold tracking-tight">Origin</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-icons-round text-primary text-sm">location_on</span>
+<span class="font-semibold text-sm">Cairo, EG</span>
+</div>
+</div>
+<div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+<p class="text-[10px] text-slate-400 uppercase font-bold tracking-tight">Destination</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-icons-round text-secondary text-sm">flag</span>
+<span class="font-semibold text-sm">Alexandria, EG</span>
+</div>
+</div>
+</div>
+<div class="mt-4 flex items-center gap-3 p-3 bg-secondary/10 rounded-2xl">
+<span class="material-icons-round text-secondary">calendar_today</span>
+<div>
+<p class="text-xs font-semibold text-secondary">Traveling Tomorrow</p>
+<p class="text-[10px] text-secondary/80">Departure around 09:00 AM</p>
+</div>
+</div>
+<p class="mt-4 text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
+                "Friendly guy heading to Alex for the weekend. Happy to help with small packages or documents! Traveling by car."
+            </p>
+<div class="mt-6 flex gap-3">
+<button class="flex-1 bg-primary hover:bg-opacity-90 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2">
+<span class="material-icons-round">chat</span>
+                    Contact Ahmed
+                </button>
+<button class="w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-600 dark:text-slate-300">
+<span class="material-icons-round">share</span>
+</button>
+</div>
+</div>
+<div class="absolute bottom-0 left-0 right-0 h-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 flex items-center justify-around px-4 pb-4 z-50">
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-icons-round">explore</span>
+<span class="text-[10px] font-bold">Explore</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-icons-round">local_shipping</span>
+<span class="text-[10px] font-medium">Deliveries</span>
+</button>
+<div class="relative -top-4">
+<button class="w-14 h-14 bg-primary text-white rounded-full shadow-xl flex items-center justify-center border-4 border-white dark:border-slate-900">
+<span class="material-icons-round text-3xl">add</span>
+</button>
+</div>
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-icons-round">forum</span>
+<span class="text-[10px] font-medium">Messages</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-icons-round">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</button>
+</div>
+</main>
+<div class="h-8 w-full bg-white dark:bg-slate-900 flex justify-center items-center shrink-0">
+<div class="w-32 h-1.5 bg-black/10 dark:bg-white/10 rounded-full"></div>
+</div>
+
+</body></html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>الملف الشخصي - رايح جاي</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#8B3DFF",
+              secondary: "#2563EB",
+              "background-light": "#F9FAFB",
+              "background-dark": "#111827",
+              "card-light": "#FFFFFF",
+              "card-dark": "#1F2937",
+            },
+            fontFamily: {
+              display: ["IBM Plex Sans Arabic", "sans-serif"],
+              body: ["IBM Plex Sans Arabic", "sans-serif"],
+            },
+            borderRadius: {
+              DEFAULT: "16px",
+            },
+          },
+        },
+      };
+    </script>
+<style>
+      body {
+        font-family: 'IBM Plex Sans Arabic', sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .ios-status-bar {
+        height: 44px;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="ios-status-bar flex justify-between items-center px-6 pt-4 sticky top-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md z-50">
+<span class="font-semibold text-sm">9:41</span>
+<div class="flex gap-1 items-center">
+<span class="material-icons-outlined text-xs">signal_cellular_alt</span>
+<span class="material-icons-outlined text-xs">wifi</span>
+<span class="material-icons-outlined text-xs">battery_full</span>
+</div>
+</div>
+<nav class="flex items-center justify-between px-4 py-2 bg-background-light dark:bg-background-dark border-b border-slate-200 dark:border-slate-800">
+<button aria-label="Back" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+<span class="material-icons-outlined rotate-180">arrow_forward</span>
+</button>
+<h1 class="text-lg font-bold">الملف الشخصي</h1>
+<button aria-label="Share" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+<span class="material-icons-outlined">share</span>
+</button>
+</nav>
+<main class="p-4 space-y-6 pb-32">
+<section class="bg-card-light dark:bg-card-dark p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center">
+<div class="relative">
+<img alt="أحمد علي" class="w-24 h-24 rounded-full border-4 border-white dark:border-slate-700 shadow-md object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMLxZ43wj-qzaAYX66-pHgbb4FvYrfVpQ3YlFjBFmUv5CvaAy0t21jtXDenuq0_rg5QcVUmZJ5m5AZzMczhJKbbVfS0jYYi28Kbhf1izUTNsy_o0ouOiWW6PXobERyodVvJ6oBLqRx6Ute2VFcbLMgJAQjKB9-INT63hzru0g9CSHe8wek3gYxUgmKSDOoy4OY66x5Sdx-PL0fcsE9ydVYxcRhUXU4UdepkmiRuaiicGNQ3-hF-zuLkuvMh76Gjl6lF5rkTi7V5w8"/>
+<div class="absolute bottom-0 right-0 bg-green-500 w-5 h-5 rounded-full border-2 border-white dark:border-slate-700"></div>
+</div>
+<h2 class="mt-4 text-2xl font-bold">أحمد علي</h2>
+<p class="text-slate-500 dark:text-slate-400 text-sm mt-1">عضو منذ ٢٠٢٣ • ٢٨ سنة</p>
+<div class="flex items-center mt-3 bg-yellow-50 dark:bg-yellow-900/20 px-3 py-1 rounded-full">
+<span class="material-icons-outlined text-yellow-500 text-sm">star</span>
+<span class="mr-1 font-bold text-yellow-700 dark:text-yellow-400">4.9</span>
+<span class="mr-1 text-xs text-slate-500 dark:text-slate-400">(٤٥ تقييم)</span>
+</div>
+<div class="mt-4 flex gap-2 w-full">
+<div class="flex-1 bg-primary/10 dark:bg-primary/20 p-3 rounded-2xl">
+<p class="text-xs text-primary font-medium">الرحلات</p>
+<p class="text-xl font-bold text-primary">١٢</p>
+</div>
+<div class="flex-1 bg-green-50 dark:bg-green-900/20 p-3 rounded-2xl">
+<p class="text-xs text-green-600 dark:text-green-400 font-medium">التوصيلات</p>
+<p class="text-xl font-bold text-green-600 dark:text-green-400">٣٤</p>
+</div>
+</div>
+</section>
+<section class="bg-card-light dark:bg-card-dark p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-bold text-lg">الرحلة القادمة</h3>
+<span class="bg-primary/10 text-primary text-xs px-2 py-1 rounded-md font-medium">نشط الآن</span>
+</div>
+<div class="flex items-start gap-4 mb-4">
+<div class="flex flex-col items-center py-1">
+<div class="w-3 h-3 rounded-full border-2 border-primary bg-white dark:bg-slate-900"></div>
+<div class="w-0.5 h-10 bg-slate-200 dark:bg-slate-700 my-1"></div>
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+</div>
+<div class="flex-1 space-y-4">
+<div>
+<p class="text-xs text-slate-500 dark:text-slate-400">من</p>
+<p class="font-semibold">القاهرة</p>
+</div>
+<div>
+<p class="text-xs text-slate-500 dark:text-slate-400">إلى</p>
+<p class="font-semibold">الإسكندرية</p>
+</div>
+</div>
+<div class="text-left">
+<p class="text-xs text-slate-500 dark:text-slate-400">الموعد</p>
+<p class="font-bold text-primary">السبت، ١٠ ص</p>
+</div>
+</div>
+<p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl">
+                "مسافر للإسكندرية لقضاء عطلة نهاية الأسبوع. يمكنني استلام طرود صغيرة أو متوسطة الحجم وتوصيلها في الطريق."
+            </p>
+</section>
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-white dark:bg-card-dark p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center gap-3">
+<div class="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-xl text-blue-600 dark:text-blue-400">
+<span class="material-icons-outlined">verified_user</span>
+</div>
+<span class="text-xs font-bold">هوية موثقة</span>
+</div>
+<div class="bg-white dark:bg-card-dark p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center gap-3">
+<div class="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-xl text-purple-600 dark:text-purple-400">
+<span class="material-icons-outlined">speed</span>
+</div>
+<span class="text-xs font-bold">توصيل سريع</span>
+</div>
+</div>
+<section>
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-bold text-lg">آراء المستخدمين</h3>
+<button class="text-primary text-sm font-semibold">عرض الكل</button>
+</div>
+<div class="space-y-4">
+<div class="bg-card-light dark:bg-card-dark p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-3">
+<img alt="فاطمة حسن" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOUn6p016Ts6M_a078FJq94qhCsBgtANUHnOT3Ro6zaIoD0KTTNU5HmyUtOQo3jUyQFT0eito57DZ9eT7L1dwY80ECo-8w7f57nLwbdjWJrDH46K81i9gMabTCkSS8Su5FyOoSl5vLYU1SUwy73pq0s9KxXH4WbtUZg2H-VevYEq01z9EIZzInDHHuUKZm0pfjzMbcQOoIpOb0b4MChNVbbWo3UknPwypauPvayWy28-YXm_xIZmyn8RkP8khF4eMQ3LYuPLGb7qQ"/>
+<div>
+<p class="font-bold text-sm">فاطمة حسن</p>
+<div class="flex text-yellow-400 text-xs">
+<span class="material-icons-outlined text-xs">star</span>
+<span class="material-icons-outlined text-xs">star</span>
+<span class="material-icons-outlined text-xs">star</span>
+<span class="material-icons-outlined text-xs">star</span>
+<span class="material-icons-outlined text-xs">star</span>
+</div>
+</div>
+</div>
+<span class="text-[10px] text-slate-400">منذ ٣ أيام</span>
+</div>
+<p class="text-sm text-slate-600 dark:text-slate-400">أحمد شخص محترم جداً ووصل الأمانة في وقتها بالضبط. أنصح بالتعامل معه.</p>
+</div>
+<div class="bg-card-light dark:bg-card-dark p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-3">
+<img alt="عمر مصطفى" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQEk4TF7RQAjrRxG-seohcM5Jrh84JpCw6eDrpyJRJAzry6hdDN1gfgQCsuWP9u9MpM3Vezp1huBfLpFl3SCd9B-7dkYKbtANgr76TRwooB7M38rHnp94IqgkeViSxA_jxiQGZ8eAS-2rtbsDzWXusSwPZ7ib_xh1KOkvcwiqJdzvNc0ckXG8Hag67b8g904_ceaJR1Dd571130dQjjUxZnv5Bam5kVsYohsyvINlyWgrGnLHybl2PUrIxpFK7-nDsLpaQk__2sDQ"/>
+<div>
+<p class="font-bold text-sm">عمر مصطفى</p>
+<div class="flex text-yellow-400 text-xs">
+<span class="material-icons-outlined text-xs">star</span>
+<span class="material-icons-outlined text-xs">star</span>
+<span class="material-icons-outlined text-xs">star</span>
+<span class="material-icons-outlined text-xs">star</span>
+<span class="material-icons-outlined text-xs">star_half</span>
+</div>
+</div>
+</div>
+<span class="text-[10px] text-slate-400">الأسبوع الماضي</span>
+</div>
+<p class="text-sm text-slate-600 dark:text-slate-400">تجربة ممتازة وتواصل مستمر طوال الطريق. شكراً لك يا أحمد.</p>
+</div>
+</div>
+</section>
+</main>
+<div class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-background-dark/80 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 flex gap-3 z-50">
+<button class="bg-secondary hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-2xl flex-1 flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-500/25">
+<span class="material-icons-outlined">chat_bubble_outline</span>
+            تواصل مع أحمد
+        </button>
+<button class="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl transition-all active:scale-95">
+<span class="material-icons-outlined">favorite_border</span>
+</button>
+</div>
+<div class="fixed top-0 left-0 -z-10 w-full h-64 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"></div>
+
+</body></html>

@@ -1,0 +1,24 @@
+package com.audioly.app.player
+
+/**
+ * Immutable snapshot of player state.
+ * Emitted as a [kotlinx.coroutines.flow.StateFlow] by [PlayerRepository].
+ */
+data class PlayerState(
+    val videoId: String? = null,
+    val title: String = "",
+    val uploader: String = "",
+    val thumbnailUrl: String = "",
+    val durationMs: Long = 0L,
+    val positionMs: Long = 0L,
+    val isPlaying: Boolean = false,
+    val isBuffering: Boolean = false,
+    val playbackSpeed: Float = 1.0f,
+    val selectedSubtitleLanguage: String = "",
+    val currentSubtitleIndex: Int = -1,
+    val error: String? = null,
+) {
+    val isEmpty: Boolean get() = videoId == null
+    val progressFraction: Float
+        get() = if (durationMs > 0L) positionMs.toFloat() / durationMs else 0f
+}

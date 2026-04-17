@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Rayeh Gaay - Peer-to-Peer Delivery</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#8B3DFF",
+              "background-light": "#F9FAFB",
+              "background-dark": "#0F172A",
+              "card-light": "#FFFFFF",
+              "card-dark": "#1E293B",
+            },
+            fontFamily: {
+              display: ["Inter", "sans-serif"],
+              sans: ["Inter", "sans-serif"],
+            },
+            borderRadius: {
+              DEFAULT: "1rem",
+              'xl': "1.5rem",
+              '2xl': "2rem",
+            },
+          },
+        },
+      };
+    </script>
+<style>
+      body {
+        font-family: 'Inter', sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<nav class="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex justify-between items-center">
+<div class="flex items-center gap-2">
+<div class="bg-primary p-1.5 rounded-lg">
+<span class="material-symbols-outlined text-white text-xl">location_on</span>
+</div>
+<span class="font-extrabold text-xl tracking-tight text-primary">Rayeh Gaay</span>
+</div>
+<button class="p-2 text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined text-3xl">menu</span>
+</button>
+</nav>
+<main class="pb-24">
+<section class="px-6 pt-10 pb-12 text-center">
+<h1 class="text-4xl font-extrabold text-primary mb-4 leading-tight">Connect.<br/>Travel. Deliver.</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm max-w-xs mx-auto mb-8">
+                Join Egypt's trusted peer-to-peer delivery network. Find verified travelers heading to your destination.
+            </p>
+<div class="relative max-w-md mx-auto mb-10 group">
+<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-slate-400">search</span>
+</div>
+<input class="w-full pl-12 pr-24 py-4 rounded-2xl border-none ring-1 ring-slate-200 dark:ring-slate-700 bg-white dark:bg-slate-800 shadow-sm focus:ring-2 focus:ring-primary outline-none transition-all" placeholder="Where do you need delivery?" type="text"/>
+<button class="absolute right-2 top-2 bottom-2 px-6 bg-primary text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity">
+                    Search
+                </button>
+</div>
+<div class="grid grid-cols-1 gap-4 max-w-sm mx-auto">
+<div class="bg-white dark:bg-slate-800 p-4 rounded-2xl flex items-center gap-4 border border-slate-100 dark:border-slate-700 shadow-sm">
+<div class="bg-primary/10 p-3 rounded-xl">
+<span class="material-symbols-outlined text-primary">verified_user</span>
+</div>
+<div class="text-left">
+<p class="font-bold text-sm">Verified Users</p>
+<p class="text-xs text-slate-500">ID-verified travelers you can trust</p>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-4 rounded-2xl flex items-center gap-4 border border-slate-100 dark:border-slate-700 shadow-sm">
+<div class="bg-primary/10 p-3 rounded-xl">
+<span class="material-symbols-outlined text-primary">star</span>
+</div>
+<div class="text-left">
+<p class="font-bold text-sm">Rated System</p>
+<p class="text-xs text-slate-500">Public ratings for peace of mind</p>
+</div>
+</div>
+</div>
+</section>
+<section class="px-6 mb-12">
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm">
+<div class="flex justify-between items-start mb-2">
+<span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Users</span>
+<span class="material-symbols-outlined text-primary">groups</span>
+</div>
+<p class="text-3xl font-extrabold text-slate-900 dark:text-white">1,247</p>
+</div>
+<div class="bg-green-500 p-5 rounded-3xl shadow-lg shadow-green-500/20 text-white">
+<div class="flex justify-between items-start mb-2">
+<span class="text-xs font-bold text-green-100 uppercase tracking-wider">Deliveries Today</span>
+<span class="material-symbols-outlined text-green-100">local_shipping</span>
+</div>
+<p class="text-3xl font-extrabold">89</p>
+</div>
+</div>
+</section>
+<section class="px-6 mb-12">
+<div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-extrabold text-primary">Live Connections</h3>
+<span class="material-symbols-outlined text-primary/50">monitoring</span>
+</div>
+<div class="space-y-4">
+<div class="space-y-2">
+<div class="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+<div class="h-full bg-green-400 w-3/4 rounded-full"></div>
+</div>
+<div class="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+<div class="h-full bg-orange-400 w-1/2 rounded-full"></div>
+</div>
+<div class="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-2/3 rounded-full"></div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700">
+<span class="text-[10px] text-slate-400 font-medium">REAL-TIME CONNECTIONS ACROSS EGYPT</span>
+<span class="material-symbols-outlined text-xs text-slate-300">schedule</span>
+</div>
+</div>
+</div>
+</section>
+<section class="mb-12">
+<div class="px-6 flex justify-between items-end mb-6">
+<div>
+<h2 class="text-2xl font-extrabold text-slate-900 dark:text-white">Featured Travelers</h2>
+<p class="text-xs text-slate-500 mt-1">Top-rated travelers currently available</p>
+</div>
+<button class="text-primary text-sm font-bold flex items-center">
+                    See All <span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+<div class="flex gap-4 overflow-x-auto px-6 pb-4 hide-scrollbar">
+<div class="min-w-[280px] bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-md p-5 flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<img alt="Ahmed Ali profile" class="w-14 h-14 rounded-2xl object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbAbQkFdpNUrmqAkBBllC7jCgJgFjOQeoo3ilmrto7nQfijQiAw5pfH1fpcIJDGT-JFarfGK6VVDZ75fdjNa65Rcj0TAOj63unduq8SG1qfem1PNpryMwaj3Dpdry5qag_zgP07Xtggzjw65iHtIfdmyha0aZLTPaWhg4JiM4PQGUZnnBSn7RNve4m51rYg7pp49bPDcnf0BQFUiF1k4h6ov9-01Q6lr_AHvhiq9mL5Rm470Oi6-h_GCVZHg93uQLjm-urdZbsTFI"/>
+<div>
+<p class="font-bold text-slate-900 dark:text-white text-lg">Ahmed Ali</p>
+<p class="text-xs text-slate-500">Age 28</p>
+</div>
+<div class="ml-auto bg-green-100 dark:bg-green-900/30 text-green-600 px-2 py-1 rounded-lg text-[10px] font-bold">VERIFIED</div>
+</div>
+<div class="space-y-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">near_me</span>
+<p class="text-sm font-medium">Cairo <span class="text-slate-300 mx-1">→</span> Alexandria</p>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-yellow-400 text-sm fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-sm fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-sm fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-sm fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-sm">star_half</span>
+<span class="text-xs font-bold ml-1">4.5</span>
+</div>
+</div>
+<p class="text-xs text-slate-500 italic">"Heading to Alex for the weekend. Happy to help with small packages!"</p>
+<button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm shadow-sm transition-all active:scale-95">
+                        Contact Ahmed Ali
+                    </button>
+</div>
+<div class="min-w-[280px] bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-md p-5 flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<img alt="Fatma Hassan profile" class="w-14 h-14 rounded-2xl object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOa9Ea8hF3ZyUaRBmFb7qPVnXdeC4ShG-IEL4iVLYDShmI8ume3VO8_XwQaWHNuBtRz1OUjR1bVVfdpiQy9X1XdF4XtwnnAdFvr-HfEwvZNtph960_OEi6Et_26UDqb3fBHJYChAJoed76UZ3vKwpkwxynxY-m1wtZbr71krXYaiPL09Bv7bP0rWEgtKZMw3NuCQNOvDTMSLAzNF5JIh7EkgE2UqiFynhrKd9fg6LW6Gt3wR8DuK758Gj9ygvdQi-WfehNqncT9VU"/>
+<div>
+<p class="font-bold text-slate-900 dark:text-white text-lg">Fatma Hassan</p>
+<p class="text-xs text-slate-500">Age 25</p>
+</div>
+<div class="ml-auto bg-green-100 dark:bg-green-900/30 text-green-600 px-2 py-1 rounded-lg text-[10px] font-bold">VERIFIED</div>
+</div>
+<div class="space-y-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">near_me</span>
+<p class="text-sm font-medium">Alexandria <span class="text-slate-300 mx-1">→</span> Cairo</p>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-yellow-400 text-sm fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-sm fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-sm fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-sm fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-sm fill-current">star</span>
+<span class="text-xs font-bold ml-1">5.0</span>
+</div>
+</div>
+<p class="text-xs text-slate-500 italic">"Returning to Cairo. Reliable and verified traveler."</p>
+<button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm shadow-sm transition-all active:scale-95">
+                        Contact Fatma Hassan
+                    </button>
+</div>
+</div>
+</section>
+<section class="px-6 py-12 bg-white dark:bg-slate-800 rounded-[3rem] mx-4 mb-12">
+<h2 class="text-2xl font-extrabold text-center text-primary mb-2">How Rayeh Gaay Works</h2>
+<p class="text-center text-slate-500 text-xs mb-10">Simple, safe, and reliable peer-to-peer delivery</p>
+<div class="space-y-12">
+<div class="flex flex-col items-center text-center px-4">
+<div class="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-primary text-3xl">search</span>
+</div>
+<h3 class="font-extrabold text-lg mb-2">1. Search</h3>
+<p class="text-xs text-slate-500 leading-relaxed">Find verified travelers heading to your destination using our map or search</p>
+</div>
+<div class="flex flex-col items-center text-center px-4">
+<div class="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-primary text-3xl">chat_bubble</span>
+</div>
+<h3 class="font-extrabold text-lg mb-2">2. Connect</h3>
+<p class="text-xs text-slate-500 leading-relaxed">Contact travelers directly to arrange pickup and delivery details</p>
+</div>
+<div class="flex flex-col items-center text-center px-4">
+<div class="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-primary text-3xl">package_2</span>
+</div>
+<h3 class="font-extrabold text-lg mb-2">3. Deliver</h3>
+<p class="text-xs text-slate-500 leading-relaxed">Your package travels safely with trusted, rated community members</p>
+</div>
+</div>
+</section>
+<section class="px-6 mb-12">
+<h2 class="text-3xl font-extrabold text-primary mb-8">Why Choose Rayeh Gaay?</h2>
+<div class="space-y-4">
+<div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700">
+<h4 class="font-bold text-primary mb-1">Trusted Community</h4>
+<p class="text-xs text-slate-500">All travelers are ID-verified and rated by the community for your peace of mind.</p>
+</div>
+<div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700">
+<h4 class="font-bold text-primary mb-1">Flexible &amp; Fast</h4>
+<p class="text-xs text-slate-500">Find travelers heading to your destination at any time, for quick and flexible delivery.</p>
+</div>
+<div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700">
+<h4 class="font-bold text-primary mb-1">Affordable</h4>
+<p class="text-xs text-slate-500">Save money compared to traditional couriers by connecting directly with travelers.</p>
+</div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 pb-8 pt-3 px-8 flex justify-between items-center z-50">
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined fill-current">home</span>
+<span class="text-[10px] font-bold">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500">
+<span class="material-symbols-outlined">explore</span>
+<span class="text-[10px] font-medium">Explore</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="text-[10px] font-medium">Messages</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</button>
+</nav>
+<div class="fixed bottom-24 left-4 right-4 bg-white dark:bg-slate-800 p-6 rounded-[2rem] shadow-2xl border border-slate-200 dark:border-slate-700 z-[60] transform transition-transform duration-500" id="cookieBanner">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="bg-primary/10 p-2 rounded-xl">
+<span class="material-symbols-outlined text-primary">cookie</span>
+</div>
+<h4 class="font-extrabold">We value your privacy</h4>
+</div>
+<button class="text-slate-400" onclick="document.getElementById('cookieBanner').style.display='none'">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<p class="text-xs text-slate-500 mb-6 leading-relaxed">
+            This website uses cookies to ensure you get the best experience. We use necessary cookies for basic functionality and optional cookies to improve your experience and provide personalized content.
+        </p>
+<div class="space-y-3">
+<button class="w-full bg-primary text-white font-bold py-3 rounded-2xl text-sm shadow-lg shadow-primary/20" onclick="document.getElementById('cookieBanner').style.display='none'">Accept All</button>
+<button class="w-full bg-white dark:bg-slate-800 border-2 border-primary/20 text-primary font-bold py-3 rounded-2xl text-sm" onclick="document.getElementById('cookieBanner').style.display='none'">Necessary Only</button>
+<button class="w-full text-slate-400 font-bold py-1 text-xs" onclick="document.getElementById('cookieBanner').style.display='none'">Learn more about our cookie policy</button>
+</div>
+</div>
+
+</body></html>
