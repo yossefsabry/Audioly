@@ -19,10 +19,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import com.audioly.app.player.SubtitleCue
+import kotlinx.coroutines.delay
 
 /**
  * Scrollable list of subtitle cues.
@@ -51,6 +51,14 @@ fun SubtitleView(
                     userScrolled = true
                 }
             }
+    }
+
+    // Auto-reset userScrolled after 3 seconds so auto-scroll resumes
+    LaunchedEffect(userScrolled) {
+        if (userScrolled) {
+            delay(3_000L)
+            userScrolled = false
+        }
     }
 
     // Auto-scroll when active cue changes and user hasn't manually scrolled

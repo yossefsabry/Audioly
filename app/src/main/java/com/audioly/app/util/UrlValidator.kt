@@ -65,7 +65,7 @@ object UrlValidator {
                 }
                 host in SHORT_HOSTS -> {
                     path.removePrefix("/")
-                        ?.takeIf { it.isNotBlank() && !it.contains("/") }
+                        .takeIf { it.isNotBlank() && !it.contains("/") }
                 }
                 else -> null
             }

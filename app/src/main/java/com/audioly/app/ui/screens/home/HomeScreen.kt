@@ -180,7 +180,18 @@ fun HomeScreen(
                         items(history, key = { it.videoId }) { track ->
                             TrackItem(
                                 track = track,
-                                onClick = { onNavigateToPlayer(track.videoId) },
+                                onClick = {
+                                    scope.launch {
+                                        handleHistoryTap(
+                                            videoId = track.videoId,
+                                            app = app,
+                                            onNavigateToPlayer = onNavigateToPlayer,
+                                            setExtracting = { isExtracting = it },
+                                            isCurrentlyIdle = !isExtracting,
+                                            snackbarHostState = snackbarHostState,
+                                        )
+                                    }
+                                },
                             )
                         }
                     }
@@ -214,30 +225,37 @@ private suspend fun handleGo(
         AppLogger.w(TAG, "Extraction already in progress, ignoring duplicate request")
         return
     }
+
+    // ── Try cache-backed instant playback ─────────────────────────────────
+    if (tryPlayFromCache(videoId, app, onNavigateToPlayer)) return
+
+    // ── Fallback: full extraction ─────────────────────────────────────────
     setExtracting(true)
     try {
         AppLogger.i(TAG, "Extracting: $url")
         when (val result = app.youTubeExtractor.extract(url)) {
             is ExtractionResult.Success -> {
+                val info = result.streamInfo
                 try {
-                    app.trackRepository.upsertFromExtraction(result.streamInfo)
+                    app.trackRepository.upsertFromExtraction(info)
+                    // Persist audio URL so cache-backed replay works next time
+                    app.trackRepository.setAudioStreamUrl(info.videoId, info.audioStreamUrl)
                 } catch (e: Exception) {
                     AppLogger.e(TAG, "Failed to save track to DB", e)
-                    // Non-fatal — continue to play even if DB write fails
                 }
                 // Clear old subtitle data and set new tracks
                 app.playerRepository.clearSubtitles()
-                app.playerRepository.setSubtitleTracks(result.streamInfo.subtitleTracks)
+                app.playerRepository.setSubtitleTracks(info.subtitleTracks)
                 // Load audio into player
                 app.playerRepository.load(
-                    audioUrl = result.streamInfo.audioStreamUrl,
-                    videoId = result.streamInfo.videoId,
-                    title = result.streamInfo.title,
-                    uploader = result.streamInfo.uploader,
-                    thumbnailUrl = result.streamInfo.thumbnailUrl,
-                    durationMs = result.streamInfo.durationSeconds * 1000L,
+                    audioUrl = info.audioStreamUrl,
+                    videoId = info.videoId,
+                    title = info.title,
+                    uploader = info.uploader,
+                    thumbnailUrl = info.thumbnailUrl,
+                    durationMs = info.durationSeconds * 1000L,
                 )
-                onNavigateToPlayer(result.streamInfo.videoId)
+                onNavigateToPlayer(info.videoId)
             }
             is ExtractionResult.Failure.InvalidUrl ->
                 setError("Not a valid YouTube URL")
@@ -251,10 +269,83 @@ private suspend fun handleGo(
                 snackbarHostState.showSnackbar("Extraction failed: ${result.cause.message ?: "unknown error"}")
         }
     } catch (e: Exception) {
-        // Catch-all to prevent crash
         AppLogger.e(TAG, "Unexpected error during extraction", e)
         snackbarHostState.showSnackbar("Something went wrong: ${e.message ?: "unknown error"}")
     } finally {
         setExtracting(false)
     }
+}
+
+/**
+ * Attempt to play a video entirely from cache.
+ * Returns true if successful (caller should skip extraction).
+ */
+private suspend fun tryPlayFromCache(
+    videoId: String,
+    app: AudiolyApp,
+    onNavigateToPlayer: (String) -> Unit,
+): Boolean {
+    try {
+        val isFullyCached = app.audioCacheManager.isFullyCached(videoId)
+        if (!isFullyCached) {
+            val hasSomeCache = app.audioCacheManager.isCached(videoId)
+            val cachedBytes = if (hasSomeCache) app.audioCacheManager.getCachedBytes(videoId) else 0L
+            AppLogger.d(TAG, "tryPlayFromCache($videoId): fullyCached=false, hasSomeCache=$hasSomeCache, cachedBytes=$cachedBytes — falling back to extraction")
+            return false
+        }
+        val track = app.trackRepository.getById(videoId)
+        if (track == null) {
+            AppLogger.d(TAG, "tryPlayFromCache($videoId): fully cached but no DB record")
+            return false
+        }
+        val audioUrl = track.audioStreamUrl
+        if (audioUrl.isNullOrBlank()) {
+            AppLogger.d(TAG, "tryPlayFromCache($videoId): fully cached but no stored audioUrl")
+            return false
+        }
+
+        AppLogger.i(TAG, "Playing from cache: $videoId (${app.audioCacheManager.getCachedBytes(videoId)} bytes)")
+        app.playerRepository.clearSubtitles()
+        app.playerRepository.load(
+            audioUrl = audioUrl,
+            videoId = videoId,
+            title = track.title,
+            uploader = track.uploader,
+            thumbnailUrl = track.thumbnailUrl,
+            durationMs = track.durationSeconds * 1000L,
+        )
+        onNavigateToPlayer(videoId)
+        return true
+    } catch (e: Exception) {
+        AppLogger.w(TAG, "Cache playback failed, falling back to extraction: ${e.message}")
+        return false
+    }
+}
+
+/**
+ * Handle tap on a history item. Tries cache first, falls back to extraction.
+ */
+private suspend fun handleHistoryTap(
+    videoId: String,
+    app: AudiolyApp,
+    onNavigateToPlayer: (String) -> Unit,
+    setExtracting: (Boolean) -> Unit,
+    isCurrentlyIdle: Boolean,
+    snackbarHostState: androidx.compose.material3.SnackbarHostState,
+) {
+    if (!isCurrentlyIdle) return
+
+    // Try instant cache playback
+    if (tryPlayFromCache(videoId, app, onNavigateToPlayer)) return
+
+    // Fallback: re-extract using a constructed YouTube URL
+    handleGo(
+        url = "https://www.youtube.com/watch?v=$videoId",
+        app = app,
+        onNavigateToPlayer = onNavigateToPlayer,
+        setError = { /* History tap has no URL field to show errors */ },
+        setExtracting = setExtracting,
+        isCurrentlyIdle = isCurrentlyIdle,
+        snackbarHostState = snackbarHostState,
+    )
 }

@@ -129,6 +129,9 @@ class PlayerRepository {
     fun clearSubtitles() {
         _subtitleTracks.value = emptyList()
         _subtitleContent.value = emptyMap()
+        // Also clear player-side selection so auto-select fires for the next video
+        playerRef?.setSubtitleLanguage("")
+        playerRef?.setSubtitleIndex(-1)
     }
 
     private data class PendingLoad(

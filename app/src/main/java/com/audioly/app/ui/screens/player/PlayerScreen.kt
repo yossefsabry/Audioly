@@ -26,6 +26,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -108,6 +109,13 @@ fun PlayerScreen(
     val subtitleContentMap by playerRepository.subtitleContent.collectAsState()
 
     val subtitleManager = remember(state.videoId) { SubtitleManager() }
+
+    // Auto-select first available subtitle language when tracks load
+    LaunchedEffect(subtitleTracks) {
+        if (subtitleTracks.isNotEmpty() && state.selectedSubtitleLanguage.isEmpty()) {
+            playerRepository.setSubtitleLanguage(subtitleTracks.first().languageCode)
+        }
+    }
 
     // Load parsed cues when VTT content or selected language changes
     LaunchedEffect(state.selectedSubtitleLanguage, subtitleContentMap) {
@@ -269,24 +277,39 @@ fun PlayerScreen(
             var dragPosition by remember { mutableStateOf(0f) }
             val displayPosition = if (isDragging) dragPosition else state.positionMs.toFloat()
 
-            Slider(
-                value = displayPosition,
-                onValueChange = { value ->
-                    isDragging = true
-                    dragPosition = value
-                },
-                onValueChangeFinished = {
-                    playerRepository.seekTo(dragPosition.toLong())
-                    isDragging = false
-                },
-                valueRange = 0f..durationMs.toFloat(),
-                modifier = Modifier.fillMaxWidth(),
-                colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+            // Buffer indicator + seek bar layered
+            Box(modifier = Modifier.fillMaxWidth()) {
+                // Gray buffered progress bar (behind the slider)
+                LinearProgressIndicator(
+                    progress = { state.bufferedFraction.coerceIn(0f, 1f) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .align(Alignment.Center)
+                        .clip(RoundedCornerShape(2.dp)),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.20f),
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
-            )
+                // Seek slider on top
+                Slider(
+                    value = displayPosition,
+                    onValueChange = { value ->
+                        isDragging = true
+                        dragPosition = value
+                    },
+                    onValueChangeFinished = {
+                        playerRepository.seekTo(dragPosition.toLong())
+                        isDragging = false
+                    },
+                    valueRange = 0f..durationMs.toFloat(),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colorScheme.primary,
+                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0f),
+                    ),
+                )
+            }
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

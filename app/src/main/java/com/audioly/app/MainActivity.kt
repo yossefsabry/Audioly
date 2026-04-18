@@ -1,15 +1,20 @@
 package com.audioly.app
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -31,10 +36,19 @@ import com.audioly.app.player.PlaybackController
 
 class MainActivity : ComponentActivity() {
 
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        AppLogger.i("MainActivity", "Notification permission granted: $granted")
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val initialUrl = intent?.resolveSharedUrl()
         val app = application as AudiolyApp
+
+        // Request notification permission (required on Android 13+ for foreground service)
+        requestNotificationPermissionIfNeeded()
 
         // Bind to AudioService and wire PlayerRepository
         val playbackController = PlaybackController(this, app.playerRepository)
@@ -76,6 +90,16 @@ class MainActivity : ComponentActivity() {
             AppLogger.i("MainActivity", "Share intent received: $text")
         }
         return result
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
     }
 }
 

@@ -16,6 +16,8 @@ data class TrackEntity(
     val durationSeconds: Long,
     /** Local path to cached audio file, null when not cached. */
     val audioFilePath: String?,
+    /** Last-used audio stream URL (may be expired). Used for cache-backed replay. */
+    val audioStreamUrl: String? = null,
     /** Epoch-millis of most recent playback start, 0 when never played. */
     val lastPlayedAt: Long = 0L,
     val playCount: Int = 0,

@@ -8,6 +8,7 @@ data class Track(
     val thumbnailUrl: String,
     val durationSeconds: Long,
     val audioFilePath: String?,
+    val audioStreamUrl: String?,
     val lastPlayedAt: Long,
     val playCount: Int,
     val addedAt: Long,

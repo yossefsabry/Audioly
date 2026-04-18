@@ -11,6 +11,7 @@ data class PlayerState(
     val thumbnailUrl: String = "",
     val durationMs: Long = 0L,
     val positionMs: Long = 0L,
+    val bufferedPositionMs: Long = 0L,
     val isPlaying: Boolean = false,
     val isBuffering: Boolean = false,
     val playbackSpeed: Float = 1.0f,
@@ -21,4 +22,6 @@ data class PlayerState(
     val isEmpty: Boolean get() = videoId == null
     val progressFraction: Float
         get() = if (durationMs > 0L) positionMs.toFloat() / durationMs else 0f
+    val bufferedFraction: Float
+        get() = if (durationMs > 0L) bufferedPositionMs.toFloat() / durationMs else 0f
 }

@@ -55,6 +55,10 @@ class AudioService : MediaSessionService() {
         mediaSession = MediaSession.Builder(this, player.exoPlayer)
             .setSessionActivity(buildSessionActivity())
             .build()
+        // Register session with MediaSessionService so the notification manager picks it up.
+        // Without this, onGetSession() is never called (no MediaController connects) and
+        // the system never creates the media notification.
+        addSession(mediaSession!!)
         createNotificationChannel()
         startPositionTicker()
     }
@@ -87,6 +91,8 @@ class AudioService : MediaSessionService() {
                 AppLogger.e(TAG, "Error releasing player", e)
             }
         }
+        // Remove session from service before releasing
+        mediaSession?.let { removeSession(it) }
         mediaSession?.release()
         mediaSession = null
         super.onDestroy()

@@ -37,6 +37,9 @@ interface TrackDao {
     @Query("UPDATE tracks SET audioFilePath = :path WHERE videoId = :videoId")
     suspend fun setAudioFilePath(videoId: String, path: String?)
 
+    @Query("UPDATE tracks SET audioStreamUrl = :url WHERE videoId = :videoId")
+    suspend fun setAudioStreamUrl(videoId: String, url: String?)
+
     @Query("DELETE FROM tracks WHERE videoId = :videoId")
     suspend fun delete(videoId: String)
 
@@ -54,6 +57,7 @@ interface TrackDao {
         upsert(
             track.copy(
                 audioFilePath = existing?.audioFilePath ?: track.audioFilePath,
+                audioStreamUrl = track.audioStreamUrl ?: existing?.audioStreamUrl,
                 lastPlayedAt = existing?.lastPlayedAt ?: track.lastPlayedAt,
                 playCount = existing?.playCount ?: track.playCount,
                 addedAt = existing?.addedAt ?: track.addedAt,

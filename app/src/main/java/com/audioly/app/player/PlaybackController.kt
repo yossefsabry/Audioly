@@ -48,8 +48,13 @@ class PlaybackController(
     }
 
     override fun onStart(owner: LifecycleOwner) {
-        AppLogger.d(TAG, "Binding to AudioService")
+        AppLogger.d(TAG, "Starting and binding to AudioService")
         val intent = Intent(appContext, AudioService::class.java)
+        // Explicitly start the service so it becomes a "started service" and
+        // survives unbind when the activity goes to background.
+        // MediaSessionService auto-promotes to foreground (with notification)
+        // once playback begins — no manual startForeground() needed.
+        appContext.startService(intent)
         appContext.bindService(intent, connection, Context.BIND_AUTO_CREATE)
         bindRequested = true
     }

@@ -53,6 +53,9 @@ class TrackRepository(private val dao: TrackDao) {
     suspend fun setAudioFilePath(videoId: String, path: String?) =
         dao.setAudioFilePath(videoId, path)
 
+    suspend fun setAudioStreamUrl(videoId: String, url: String?) =
+        dao.setAudioStreamUrl(videoId, url)
+
     suspend fun delete(videoId: String) =
         dao.delete(videoId)
 }
@@ -66,6 +69,7 @@ private fun TrackEntity.toDomain() = Track(
     thumbnailUrl = thumbnailUrl,
     durationSeconds = durationSeconds,
     audioFilePath = audioFilePath,
+    audioStreamUrl = audioStreamUrl,
     lastPlayedAt = lastPlayedAt,
     playCount = playCount,
     addedAt = addedAt,

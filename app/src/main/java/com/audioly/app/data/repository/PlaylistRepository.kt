@@ -63,6 +63,7 @@ private fun TrackEntity.toDomain() = Track(
     thumbnailUrl = thumbnailUrl,
     durationSeconds = durationSeconds,
     audioFilePath = audioFilePath,
+    audioStreamUrl = audioStreamUrl,
     lastPlayedAt = lastPlayedAt,
     playCount = playCount,
     addedAt = addedAt,

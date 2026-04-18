@@ -78,11 +78,18 @@ class AudioPlayer(
         try {
             AppLogger.i(TAG, "Loading audio: $videoId — $title")
             currentMeta = Meta(videoId, title, uploader, thumbnailUrl, durationMs)
-            // Clear any previous error
-            _state.update { it.copy(error = null) }
+            // Clear previous error and subtitle selection so auto-select fires for new video
+            _state.update {
+                it.copy(
+                    error = null,
+                    selectedSubtitleLanguage = "",
+                    currentSubtitleIndex = -1,
+                )
+            }
             val mediaItem = MediaItem.Builder()
                 .setUri(audioUrl)
                 .setMediaId(videoId)
+                .setCustomCacheKey(videoId)
                 .build()
             exoPlayer.setMediaItem(mediaItem)
             exoPlayer.prepare()
@@ -154,6 +161,7 @@ class AudioPlayer(
         val meta = currentMeta
         val duration = exoPlayer.duration.coerceAtLeast(0L)
         val position = exoPlayer.currentPosition.coerceAtLeast(0L)
+        val buffered = exoPlayer.bufferedPosition.coerceAtLeast(0L)
         val playing = exoPlayer.isPlaying
         val buffering = exoPlayer.playbackState == Player.STATE_BUFFERING
         val speed = exoPlayer.playbackParameters.speed
@@ -165,6 +173,7 @@ class AudioPlayer(
                 thumbnailUrl = meta.thumbnailUrl,
                 durationMs = duration,
                 positionMs = position,
+                bufferedPositionMs = buffered,
                 isPlaying = playing,
                 isBuffering = buffering,
                 playbackSpeed = speed,
