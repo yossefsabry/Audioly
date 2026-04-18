@@ -13,6 +13,8 @@ import com.audioly.app.data.cache.SubtitleCacheManager
 import com.audioly.app.player.PlayerRepository
 import com.audioly.app.util.AppLogger
 import java.io.File
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.schabi.newpipe.extractor.NewPipe
 
 class AudiolyApp : Application() {
@@ -69,14 +71,24 @@ class AudiolyApp : Application() {
 
         database = AudiolyDatabase.getInstance(this)
 
+        // Init preferences early so cache size pref is available before AudioCacheManager
+        preferencesRepository = UserPreferencesRepository(this)
+
+        // Read cache size preference synchronously — SimpleCache needs it at construction
+        val maxCacheBytes = try {
+            runBlocking { preferencesRepository.preferences.first().maxCacheBytes }
+        } catch (_: Exception) {
+            AudioCacheManager.DEFAULT_MAX_BYTES
+        }
+
         audioCacheManager = try {
-            AudioCacheManager(this)
+            AudioCacheManager(this, maxCacheBytes)
         } catch (e: Exception) {
             AppLogger.e(TAG, "Failed to create audio cache, retrying after cleanup", e)
             // SimpleCache can fail if lock file is stale or directory is corrupted
             try {
                 File(cacheDir, "audio_cache").deleteRecursively()
-                AudioCacheManager(this)
+                AudioCacheManager(this, maxCacheBytes)
             } catch (e2: Exception) {
                 AppLogger.fatal(TAG, "Audio cache creation failed even after cleanup", e2)
                 throw e2 // Unrecoverable — app cannot function without cache
@@ -96,8 +108,6 @@ class AudiolyApp : Application() {
             subtitleCacheManager = subtitleCacheManager,
             trackRepository = trackRepository,
         )
-
-        preferencesRepository = UserPreferencesRepository(this)
 
         youTubeExtractor = YouTubeExtractor()
 

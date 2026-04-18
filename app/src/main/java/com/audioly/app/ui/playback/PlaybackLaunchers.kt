@@ -5,6 +5,7 @@ import com.audioly.app.AudiolyApp
 import com.audioly.app.extraction.ExtractionResult
 import com.audioly.app.util.AppLogger
 import com.audioly.app.util.UrlValidator
+import kotlinx.coroutines.flow.first
 
 private const val TAG = "PlaybackLaunchers"
 
@@ -83,6 +84,7 @@ suspend fun launchPlaybackFromVideoId(
                     thumbnailUrl = info.thumbnailUrl,
                     durationMs = info.durationSeconds * 1000L,
                 )
+                applyDefaultSpeed(app)
                 onNavigateToPlayer(info.videoId)
             }
 
@@ -144,10 +146,23 @@ private suspend fun tryPlayFromCache(
             thumbnailUrl = track.thumbnailUrl,
             durationMs = track.durationSeconds * 1000L,
         )
+        applyDefaultSpeed(app)
         onNavigateToPlayer(videoId)
         return true
     } catch (e: Exception) {
         AppLogger.w(TAG, "Cache playback failed, falling back to extraction: ${e.message}")
         return false
+    }
+}
+
+/** Apply user's default playback speed preference to the player after loading a new track. */
+private suspend fun applyDefaultSpeed(app: AudiolyApp) {
+    try {
+        val speed = app.preferencesRepository.preferences.first().playbackSpeed
+        if (speed != 1.0f) {
+            app.playerRepository.setSpeed(speed)
+        }
+    } catch (e: Exception) {
+        AppLogger.w(TAG, "Failed to apply default speed: ${e.message}")
     }
 }

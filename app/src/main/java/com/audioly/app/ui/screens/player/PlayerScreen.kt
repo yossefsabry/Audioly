@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.audioly.app.AudiolyApp
+import com.audioly.app.data.preferences.UserPreferences
 import com.audioly.app.player.SubtitleCue
 import com.audioly.app.player.SubtitleManager
 import com.audioly.app.player.VttParser
@@ -71,6 +72,7 @@ fun PlayerScreen(
 ) {
     val playerRepository = app.playerRepository
     val state by playerRepository.state.collectAsState()
+    val prefs by app.preferencesRepository.preferences.collectAsState(initial = UserPreferences())
 
     // Show loading if player is empty (no video loaded yet)
     if (state.isEmpty) {
@@ -114,10 +116,16 @@ fun PlayerScreen(
     val subtitleManager = remember(state.videoId) { SubtitleManager() }
     var subtitleCues by remember(state.videoId) { mutableStateOf<List<SubtitleCue>>(emptyList()) }
 
-    // Auto-select first available subtitle language when tracks load
+    // Auto-select subtitle language: prefer saved language, fall back to first track
     LaunchedEffect(subtitleTracks) {
         if (subtitleTracks.isNotEmpty() && state.selectedSubtitleLanguage.isEmpty()) {
-            playerRepository.setSubtitleLanguage(subtitleTracks.first().languageCode)
+            val preferred = prefs.preferredSubtitleLanguage
+            val match = if (preferred.isNotEmpty()) {
+                subtitleTracks.firstOrNull { it.languageCode == preferred }
+            } else null
+            playerRepository.setSubtitleLanguage(
+                match?.languageCode ?: subtitleTracks.first().languageCode
+            )
         }
     }
 
@@ -195,6 +203,8 @@ fun PlayerScreen(
 
     val speeds = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
     val availableLanguages = subtitleTracks.map { it.languageCode }.distinct().sorted()
+    val showSubtitles = subtitleCues.isNotEmpty() && state.selectedSubtitleLanguage.isNotEmpty()
+    val subtitlePosition = prefs.subtitlePosition
 
     Scaffold(
         topBar = {
@@ -292,6 +302,19 @@ fun PlayerScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            // Subtitle — top position
+            if (showSubtitles && subtitlePosition == UserPreferences.SUBTITLE_TOP) {
+                SubtitleView(
+                    cues = subtitleCues,
+                    activeCueIndex = activeCueIndex,
+                    fontSizeSp = prefs.subtitleFontSizeSp.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    onCueTap = { posMs -> playerRepository.seekTo(posMs) },
+                )
+            }
+
             // Progress — use local state for smooth dragging, only seek on release
             val durationMs = state.durationMs.coerceAtLeast(1L)
             var isDragging by remember { mutableStateOf(false) }
@@ -340,6 +363,19 @@ fun PlayerScreen(
                 Text(formatMs(state.durationMs), style = MaterialTheme.typography.bodySmall)
             }
 
+            // Subtitle — middle position
+            if (showSubtitles && subtitlePosition == UserPreferences.SUBTITLE_MIDDLE) {
+                SubtitleView(
+                    cues = subtitleCues,
+                    activeCueIndex = activeCueIndex,
+                    fontSizeSp = prefs.subtitleFontSizeSp.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    onCueTap = { posMs -> playerRepository.seekTo(posMs) },
+                )
+            }
+
             Spacer(Modifier.height(8.dp))
 
             // Playback controls
@@ -359,10 +395,10 @@ fun PlayerScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(
-                        onClick = { playerRepository.skipBack() },
+                        onClick = { playerRepository.skipBack(prefs.skipIntervalSeconds * 1000L) },
                         modifier = Modifier.size(56.dp)
                     ) {
-                        Icon(Icons.Default.FastRewind, contentDescription = "Skip back 15s", modifier = Modifier.size(32.dp))
+                        Icon(Icons.Default.FastRewind, contentDescription = "Skip back ${prefs.skipIntervalSeconds}s", modifier = Modifier.size(32.dp))
                     }
                     
                     if (state.isBuffering) {
@@ -385,10 +421,10 @@ fun PlayerScreen(
                     }
                     
                     IconButton(
-                        onClick = { playerRepository.skipForward() },
+                        onClick = { playerRepository.skipForward(prefs.skipIntervalSeconds * 1000L) },
                         modifier = Modifier.size(56.dp)
                     ) {
-                        Icon(Icons.Default.FastForward, contentDescription = "Skip forward 15s", modifier = Modifier.size(32.dp))
+                        Icon(Icons.Default.FastForward, contentDescription = "Skip forward ${prefs.skipIntervalSeconds}s", modifier = Modifier.size(32.dp))
                     }
                 }
             }
@@ -440,12 +476,12 @@ fun PlayerScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // Subtitle list
-            if (subtitleCues.isNotEmpty() && state.selectedSubtitleLanguage.isNotEmpty()) {
+            // Subtitle — bottom position (default)
+            if (showSubtitles && subtitlePosition == UserPreferences.SUBTITLE_BOTTOM) {
                 SubtitleView(
                     cues = subtitleCues,
                     activeCueIndex = activeCueIndex,
-                    fontSizeSp = 14.sp,
+                    fontSizeSp = prefs.subtitleFontSizeSp.sp,
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),

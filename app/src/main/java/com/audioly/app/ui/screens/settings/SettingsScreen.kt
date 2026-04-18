@@ -110,7 +110,7 @@ fun SettingsScreen(app: AudiolyApp, onNavigateToLogs: () -> Unit = {}) {
             // ─── Cache ────────────────────────────────────────────────────────
             SectionHeader("Cache")
             SliderSetting(
-                label = "Max cache size",
+                label = "Max cache size (restart required)",
                 value = (prefs.maxCacheBytes / (1024 * 1024)).toFloat(),
                 valueRange = 64f..2048f,
                 steps = 30,
