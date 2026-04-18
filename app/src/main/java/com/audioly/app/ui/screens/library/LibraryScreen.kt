@@ -50,6 +50,7 @@ fun LibraryScreen(
             when (selectedTab) {
                 0 -> HistoryTab(
                     trackRepository = app.trackRepository,
+                    cacheRepository = app.cacheRepository,
                     onTrackClick = onTrackClick,
                     modifier = Modifier.fillMaxSize(),
                 )

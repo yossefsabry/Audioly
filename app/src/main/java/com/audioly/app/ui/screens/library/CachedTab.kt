@@ -2,7 +2,6 @@ package com.audioly.app.ui.screens.library
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -29,8 +28,12 @@ fun CachedTab(
     onTrackClick: (Track) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val cached by trackRepository.observeCached().collectAsState(initial = emptyList())
+    val allTracks by trackRepository.observeAll().collectAsState(initial = emptyList())
+    val cacheVersion by cacheRepository.cacheVersion.collectAsState()
     val scope = rememberCoroutineScope()
+    @Suppress("UNUSED_VARIABLE")
+    val cacheRefreshKey = cacheVersion
+    val cached = allTracks.filter { cacheRepository.hasCachedAudio(it.videoId) }
 
     if (cached.isEmpty()) {
         Box(
@@ -42,8 +45,10 @@ fun CachedTab(
     } else {
         LazyColumn(modifier = modifier) {
             items(cached, key = { it.videoId }) { track ->
+                val status = cacheRepository.getAudioStatus(track.videoId)
                 TrackItem(
                     track = track,
+                    isCached = status.hasCache,
                     onClick = { onTrackClick(track) },
                     trailing = {
                         IconButton(onClick = {

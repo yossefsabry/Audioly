@@ -8,5 +8,5 @@ data class SubtitleCue(
     val endMs: Long,
     val text: String,
 ) {
-    fun isActiveAt(positionMs: Long): Boolean = positionMs in startMs..endMs
+    fun isActiveAt(positionMs: Long): Boolean = positionMs >= startMs && positionMs < endMs
 }

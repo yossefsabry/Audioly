@@ -1,8 +1,10 @@
 package com.audioly.app.data.repository
 
 import com.audioly.app.data.cache.AudioCacheManager
+import com.audioly.app.data.cache.AudioCacheStatus
 import com.audioly.app.data.cache.SubtitleCacheManager
 import com.audioly.app.data.db.entities.SubtitleCacheEntity
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Facade over [AudioCacheManager] and [SubtitleCacheManager].
@@ -15,6 +17,7 @@ class CacheRepository(
 ) {
 
     val audioUsedBytes: Long get() = audioCacheManager.usedBytes
+    val cacheVersion: StateFlow<Long> get() = audioCacheManager.cacheVersion
 
     // ─── Audio ────────────────────────────────────────────────────────────────
 
@@ -23,6 +26,12 @@ class CacheRepository(
     }
 
     fun clearAllAudio() = audioCacheManager.clearAll()
+
+    fun getAudioStatus(videoId: String): AudioCacheStatus =
+        audioCacheManager.getStatus(videoId)
+
+    fun hasCachedAudio(videoId: String): Boolean =
+        audioCacheManager.getStatus(videoId).hasCache
 
     // ─── Subtitles ────────────────────────────────────────────────────────────
 

@@ -70,6 +70,21 @@ class VttParserTest {
     }
 
     @Test
+    fun `srt timestamps are parsed correctly`() {
+        val srt = """
+            1
+            00:00:01,000 --> 00:00:02,500
+            Hello from srt
+        """.trimIndent()
+
+        val cues = VttParser.parse(srt)
+        assertEquals(1, cues.size)
+        assertEquals(1_000L, cues[0].startMs)
+        assertEquals(2_500L, cues[0].endMs)
+        assertEquals("Hello from srt", cues[0].text)
+    }
+
+    @Test
     fun `empty content returns empty list`() {
         assertEquals(emptyList<SubtitleCue>(), VttParser.parse(""))
     }
@@ -118,6 +133,6 @@ class VttParserTest {
         val cue = SubtitleCue(1000L, 3000L, "hi")
         assert(cue.isActiveAt(2000L))
         assert(!cue.isActiveAt(500L))
-        assert(!cue.isActiveAt(4000L))
+        assert(!cue.isActiveAt(3000L))
     }
 }

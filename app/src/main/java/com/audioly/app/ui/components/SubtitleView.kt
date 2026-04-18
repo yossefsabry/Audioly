@@ -42,12 +42,13 @@ fun SubtitleView(
 ) {
     val listState = rememberLazyListState()
     var userScrolled by remember { mutableStateOf(false) }
+    var programmaticScrollInFlight by remember { mutableStateOf(false) }
 
     // Detect user-initiated scrolls via snapshotFlow
     LaunchedEffect(listState) {
         snapshotFlow { listState.isScrollInProgress }
             .collect { scrolling ->
-                if (scrolling) {
+                if (scrolling && !programmaticScrollInFlight) {
                     userScrolled = true
                 }
             }
@@ -62,9 +63,16 @@ fun SubtitleView(
     }
 
     // Auto-scroll when active cue changes and user hasn't manually scrolled
-    LaunchedEffect(activeCueIndex) {
-        if (activeCueIndex >= 0 && !userScrolled) {
-            listState.animateScrollToItem(activeCueIndex)
+    LaunchedEffect(activeCueIndex, userScrolled, cues) {
+        val visibleItems = listState.layoutInfo.visibleItemsInfo
+        val isVisible = visibleItems.any { it.index == activeCueIndex }
+        if (activeCueIndex >= 0 && !userScrolled && !isVisible) {
+            programmaticScrollInFlight = true
+            try {
+                listState.animateScrollToItem(activeCueIndex)
+            } finally {
+                programmaticScrollInFlight = false
+            }
         }
     }
 

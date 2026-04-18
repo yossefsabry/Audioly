@@ -178,8 +178,10 @@ fun HomeScreen(
                 } else {
                     LazyColumn {
                         items(history, key = { it.videoId }) { track ->
+                            val cacheStatus = app.cacheRepository.getAudioStatus(track.videoId)
                             TrackItem(
                                 track = track,
+                                isCached = cacheStatus.hasCache,
                                 onClick = {
                                     scope.launch {
                                         handleHistoryTap(
@@ -286,11 +288,12 @@ private suspend fun tryPlayFromCache(
     onNavigateToPlayer: (String) -> Unit,
 ): Boolean {
     try {
-        val isFullyCached = app.audioCacheManager.isFullyCached(videoId)
-        if (!isFullyCached) {
-            val hasSomeCache = app.audioCacheManager.isCached(videoId)
-            val cachedBytes = if (hasSomeCache) app.audioCacheManager.getCachedBytes(videoId) else 0L
-            AppLogger.d(TAG, "tryPlayFromCache($videoId): fullyCached=false, hasSomeCache=$hasSomeCache, cachedBytes=$cachedBytes — falling back to extraction")
+        val cacheStatus = app.cacheRepository.getAudioStatus(videoId)
+        if (!cacheStatus.isFullyCached) {
+            AppLogger.d(
+                TAG,
+                "tryPlayFromCache($videoId): fullyCached=false, hasCache=${cacheStatus.hasCache}, cachedBytes=${cacheStatus.cachedBytes} - falling back to extraction",
+            )
             return false
         }
         val track = app.trackRepository.getById(videoId)
@@ -304,7 +307,7 @@ private suspend fun tryPlayFromCache(
             return false
         }
 
-        AppLogger.i(TAG, "Playing from cache: $videoId (${app.audioCacheManager.getCachedBytes(videoId)} bytes)")
+        AppLogger.i(TAG, "Playing from cache: $videoId (${cacheStatus.cachedBytes} bytes)")
         app.playerRepository.clearSubtitles()
         app.playerRepository.load(
             audioUrl = audioUrl,

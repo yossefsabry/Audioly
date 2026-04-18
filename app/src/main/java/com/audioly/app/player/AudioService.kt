@@ -14,8 +14,8 @@ import androidx.media3.session.MediaSessionService
 import com.audioly.app.AudiolyApp
 import com.audioly.app.MainActivity
 import com.audioly.app.util.AppLogger
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -44,6 +44,7 @@ class AudioService : MediaSessionService() {
 
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var tickJob: Job? = null
+    private var lastRecordedVideoId: String? = null
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -98,13 +99,41 @@ class AudioService : MediaSessionService() {
         super.onDestroy()
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        val playerState = player.state.value
+        if (playerState.isPlaying || playerState.isBuffering) {
+            AppLogger.i(TAG, "Task removed while playback active; keeping service alive")
+        } else {
+            AppLogger.i(TAG, "Task removed while idle; stopping service")
+            stopSelf()
+        }
+        super.onTaskRemoved(rootIntent)
+    }
+
     // ─── Position ticker ──────────────────────────────────────────────────────
 
     private fun startPositionTicker() {
         tickJob = serviceScope.launch {
             while (true) {
                 player.tick()
+                recordPlaybackStartIfNeeded()
                 delay(TICK_INTERVAL_MS)
+            }
+        }
+    }
+
+    private fun recordPlaybackStartIfNeeded() {
+        val state = player.state.value
+        val videoId = state.videoId ?: return
+        if (!state.isPlaying || state.positionMs > PLAY_START_WINDOW_MS) return
+        if (lastRecordedVideoId == videoId) return
+
+        lastRecordedVideoId = videoId
+        serviceScope.launch(Dispatchers.IO) {
+            try {
+                (application as AudiolyApp).trackRepository.recordPlay(videoId)
+            } catch (e: Exception) {
+                AppLogger.w(TAG, "Failed to record play for $videoId: ${e.message}")
             }
         }
     }
@@ -138,5 +167,6 @@ class AudioService : MediaSessionService() {
         private const val TAG = "AudioService"
         const val CHANNEL_ID = "audioly_playback"
         private const val TICK_INTERVAL_MS = 250L
+        private const val PLAY_START_WINDOW_MS = 2_000L
     }
 }

@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.audioly.app.AudiolyApp
+import com.audioly.app.player.SubtitleCue
 import com.audioly.app.player.SubtitleManager
 import com.audioly.app.player.VttParser
 import com.audioly.app.ui.components.SubtitleView
@@ -109,6 +110,7 @@ fun PlayerScreen(
     val subtitleContentMap by playerRepository.subtitleContent.collectAsState()
 
     val subtitleManager = remember(state.videoId) { SubtitleManager() }
+    var subtitleCues by remember(state.videoId) { mutableStateOf<List<SubtitleCue>>(emptyList()) }
 
     // Auto-select first available subtitle language when tracks load
     LaunchedEffect(subtitleTracks) {
@@ -122,8 +124,13 @@ fun PlayerScreen(
         val lang = state.selectedSubtitleLanguage
         val vtt = subtitleContentMap[lang]
         if (vtt != null) {
-            subtitleManager.load(VttParser.parse(vtt))
+            val cues = withContext(Dispatchers.Default) {
+                VttParser.parse(vtt)
+            }
+            subtitleCues = cues
+            subtitleManager.load(cues)
         } else {
+            subtitleCues = emptyList()
             subtitleManager.load(emptyList())
         }
     }
@@ -258,6 +265,18 @@ fun PlayerScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            if (state.hasCachedAudio) {
+                Text(
+                    text = if (state.isFullyCached) {
+                        "Available offline"
+                    } else {
+                        "Caching audio ${formatCacheProgress(state.cachedBytes, state.cacheContentLength)}"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
 
             // Error message
             if (state.error != null) {
@@ -419,9 +438,9 @@ fun PlayerScreen(
             Spacer(Modifier.height(8.dp))
 
             // Subtitle list
-            if (!subtitleManager.isEmpty && state.selectedSubtitleLanguage.isNotEmpty()) {
+            if (subtitleCues.isNotEmpty() && state.selectedSubtitleLanguage.isNotEmpty()) {
                 SubtitleView(
-                    cues = subtitleManager.cues,
+                    cues = subtitleCues,
                     activeCueIndex = activeCueIndex,
                     fontSizeSp = 14.sp,
                     modifier = Modifier
@@ -470,4 +489,13 @@ private fun formatMs(ms: Long): String {
     } else {
         "%d:%02d".format(minutes, seconds)
     }
+}
+
+private fun formatCacheProgress(cachedBytes: Long, contentLength: Long): String {
+    if (cachedBytes <= 0L) return "0%"
+    if (contentLength <= 0L) return "${cachedBytes / 1024} KB"
+    val percent = ((cachedBytes.toDouble() / contentLength.toDouble()) * 100.0)
+        .toInt()
+        .coerceIn(0, 100)
+    return "$percent%"
 }

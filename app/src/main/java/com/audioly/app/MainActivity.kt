@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,6 +23,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.audioly.app.data.preferences.UserPreferences
+import com.audioly.app.ui.components.MiniPlayer
 import com.audioly.app.ui.navigation.Screen
 import com.audioly.app.ui.navigation.bottomNavItems
 import com.audioly.app.ui.screens.home.HomeScreen
@@ -107,6 +109,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun AudiolyMainContent(initialUrl: String?, app: AudiolyApp) {
     val navController = rememberNavController()
+    val playerState by app.playerRepository.state.collectAsState()
 
     // Track whether the share intent URL has been consumed (survives config changes)
     var consumedInitialUrl by rememberSaveable { mutableStateOf(false) }
@@ -115,30 +118,44 @@ private fun AudiolyMainContent(initialUrl: String?, app: AudiolyApp) {
         bottomBar = {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDest = navBackStackEntry?.destination
+            val showMiniPlayer = !playerState.isEmpty && currentDest?.route?.startsWith("player/") != true
             // Hide bottom bar on player and logs screens
             val showBottomBar = currentDest?.route?.startsWith("player/") != true
                 && currentDest?.route != Screen.Logs.route
-            if (showBottomBar) {
-                NavigationBar {
-                    bottomNavItems.forEach { item ->
-                        val selected = currentDest?.hierarchy?.any { it.route == item.screen.route } == true
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = {
-                                navController.navigate(item.screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = {
-                                Icon(
-                                    imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
-                                    contentDescription = item.label
-                                )
-                            },
-                            label = { Text(item.label) }
-                        )
+            Column {
+                if (showMiniPlayer) {
+                    MiniPlayer(
+                        state = playerState,
+                        onTogglePlayPause = { app.playerRepository.togglePlayPause() },
+                        onTap = {
+                            playerState.videoId?.let { videoId ->
+                                navController.navigate(Screen.Player.createRoute(videoId))
+                            }
+                        },
+                    )
+                }
+                if (showBottomBar) {
+                    NavigationBar {
+                        bottomNavItems.forEach { item ->
+                            val selected = currentDest?.hierarchy?.any { it.route == item.screen.route } == true
+                            NavigationBarItem(
+                                selected = selected,
+                                onClick = {
+                                    navController.navigate(item.screen.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
+                                icon = {
+                                    Icon(
+                                        imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
+                                        contentDescription = item.label
+                                    )
+                                },
+                                label = { Text(item.label) }
+                            )
+                        }
                     }
                 }
             }

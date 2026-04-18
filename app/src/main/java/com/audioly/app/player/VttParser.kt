@@ -13,17 +13,24 @@ package com.audioly.app.player
 object VttParser {
 
     private val TIMESTAMP_ARROW = Regex(
-        """(\d{1,2}:)?(\d{2}):(\d{2})\.(\d{3})\s*-->\s*(\d{1,2}:)?(\d{2}):(\d{2})\.(\d{3})""",
+        """(\d{1,2}:)?(\d{2}):(\d{2})[\.,](\d{3})\s*-->\s*(\d{1,2}:)?(\d{2}):(\d{2})[\.,](\d{3})""",
     )
 
     private val TAG_REGEX = Regex("""<[^>]+>""")
+    private val WEBVTT_HEADER = Regex("""^WEBVTT.*$""", RegexOption.MULTILINE)
 
     private val BLOCK_SEPARATOR = Regex("""\r?\n\r?\n+""")
 
     fun parse(content: String): List<SubtitleCue> {
+        if (content.isBlank()) return emptyList()
+
+        val normalizedContent = content
+            .replace(WEBVTT_HEADER, "")
+            .replace("\r\n", "\n")
+
         val cues = mutableListOf<SubtitleCue>()
         // Split into blocks separated by one or more blank lines
-        val blocks = content.split(BLOCK_SEPARATOR)
+        val blocks = normalizedContent.split(BLOCK_SEPARATOR)
 
         for (block in blocks) {
             val lines = block.trim().lines()
@@ -44,7 +51,7 @@ object VttParser {
                 .let { TAG_REGEX.replace(it, "") }
                 .trim()
 
-            if (text.isNotEmpty()) {
+            if (text.isNotEmpty() && endMs > startMs) {
                 cues += SubtitleCue(startMs, endMs, text)
             }
         }

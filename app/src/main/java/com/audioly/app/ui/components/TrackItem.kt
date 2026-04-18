@@ -31,6 +31,7 @@ import com.audioly.app.data.model.Track
 fun TrackItem(
     track: Track,
     onClick: () -> Unit,
+    isCached: Boolean = track.audioFilePath != null,
     modifier: Modifier = Modifier,
     trailing: @Composable (() -> Unit)? = null,
 ) {
@@ -87,7 +88,7 @@ fun TrackItem(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (track.audioFilePath != null) {
+                if (isCached) {
                     Text(
                         text = "Cached Offline",
                         style = MaterialTheme.typography.labelMedium,

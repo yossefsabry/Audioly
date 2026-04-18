@@ -7,8 +7,6 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.audioly.app.data.cache.AudioCacheManager
@@ -151,7 +149,9 @@ class AudioPlayer(
 
     /** Called periodically (e.g. 250 ms) by the service to keep position fresh. */
     fun tick() {
-        if (!released && exoPlayer.isPlaying) updateState()
+        if (!released && (exoPlayer.isPlaying || exoPlayer.isLoading || exoPlayer.playbackState == Player.STATE_BUFFERING)) {
+            updateState()
+        }
     }
 
     // ─── Internals ────────────────────────────────────────────────────────────
@@ -159,7 +159,8 @@ class AudioPlayer(
     private fun updateState() {
         if (released) return
         val meta = currentMeta
-        val duration = exoPlayer.duration.coerceAtLeast(0L)
+        val cacheStatus = audioCacheManager.noteCacheProgress(meta.videoId)
+        val duration = exoPlayer.duration.takeIf { it > 0L } ?: meta.durationMs
         val position = exoPlayer.currentPosition.coerceAtLeast(0L)
         val buffered = exoPlayer.bufferedPosition.coerceAtLeast(0L)
         val playing = exoPlayer.isPlaying
@@ -177,6 +178,10 @@ class AudioPlayer(
                 isPlaying = playing,
                 isBuffering = buffering,
                 playbackSpeed = speed,
+                cachedBytes = cacheStatus.cachedBytes,
+                cacheContentLength = cacheStatus.contentLength,
+                hasCachedAudio = cacheStatus.hasCache,
+                isFullyCached = cacheStatus.isFullyCached,
                 selectedSubtitleLanguage = prev.selectedSubtitleLanguage,
                 currentSubtitleIndex = prev.currentSubtitleIndex,
                 error = prev.error,
@@ -193,16 +198,8 @@ class AudioPlayer(
     // ─── Builder ──────────────────────────────────────────────────────────────
 
     private fun buildExoPlayer(context: Context, cacheManager: AudioCacheManager): ExoPlayer {
-        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-            .setConnectTimeoutMs(15_000)
-            .setReadTimeoutMs(15_000)
-            .setAllowCrossProtocolRedirects(true)
-        val cacheDataSourceFactory = CacheDataSource.Factory()
-            .setCache(cacheManager.cache)
-            .setUpstreamDataSourceFactory(httpDataSourceFactory)
-            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
         return ExoPlayer.Builder(context)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(cacheManager.dataSourceFactory))
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)
@@ -211,6 +208,7 @@ class AudioPlayer(
                 /* handleAudioFocus= */ true,
             )
             .setHandleAudioBecomingNoisy(true)
+            .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
     }
 
