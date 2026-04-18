@@ -57,8 +57,10 @@ import com.audioly.app.player.VttParser
 import com.audioly.app.ui.components.SubtitleView
 import com.audioly.app.util.AppLogger
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -321,6 +323,7 @@ fun PlayerScreen(
                         isDragging = false
                     },
                     valueRange = 0f..durationMs.toFloat(),
+                    enabled = state.durationMs > 0L,
                     modifier = Modifier.fillMaxWidth(),
                     colors = SliderDefaults.colors(
                         thumbColor = MaterialTheme.colorScheme.primary,
@@ -399,12 +402,12 @@ fun PlayerScreen(
             ) {
                 Box {
                     TextButton(onClick = { showSpeedMenu = true }) {
-                        Text("${state.playbackSpeed}x")
+                        Text(formatSpeed(state.playbackSpeed))
                     }
                     DropdownMenu(expanded = showSpeedMenu, onDismissRequest = { showSpeedMenu = false }) {
                         speeds.forEach { speed ->
                             DropdownMenuItem(
-                                text = { Text("${speed}x") },
+                                text = { Text(formatSpeed(speed)) },
                                 onClick = { playerRepository.setSpeed(speed); showSpeedMenu = false },
                             )
                         }
@@ -465,17 +468,28 @@ private val subtitleHttpClient: OkHttpClient by lazy {
         .build()
 }
 
-/** Downloads VTT subtitle content from a URL. Returns null on failure. */
-private suspend fun downloadVttContent(url: String): String? = withContext(Dispatchers.IO) {
-    try {
-        val request = okhttp3.Request.Builder().url(url).build()
-        subtitleHttpClient.newCall(request).execute().use { response ->
-            if (response.isSuccessful) response.body?.string() else null
+/** Downloads VTT subtitle content from a URL. Cancellable via coroutine cancellation. */
+private suspend fun downloadVttContent(url: String): String? = suspendCancellableCoroutine { cont ->
+    val request = okhttp3.Request.Builder().url(url).build()
+    val call = subtitleHttpClient.newCall(request)
+
+    cont.invokeOnCancellation { call.cancel() }
+
+    call.enqueue(object : okhttp3.Callback {
+        override fun onFailure(call: okhttp3.Call, e: IOException) {
+            if (!cont.isCancelled) {
+                AppLogger.w(TAG, "Failed to download subtitle: ${e.message}")
+            }
+            cont.resumeWith(Result.success(null))
         }
-    } catch (e: Exception) {
-        AppLogger.w(TAG, "Failed to download subtitle: ${e.message}")
-        null
-    }
+
+        override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+            val body = response.use {
+                if (it.isSuccessful) it.body?.string() else null
+            }
+            cont.resumeWith(Result.success(body))
+        }
+    })
 }
 
 private fun formatMs(ms: Long): String {
@@ -498,4 +512,10 @@ private fun formatCacheProgress(cachedBytes: Long, contentLength: Long): String 
         .toInt()
         .coerceIn(0, 100)
     return "$percent%"
+}
+
+private fun formatSpeed(speed: Float): String {
+    // Avoid floating point noise like "1.2500001x"
+    val s = "%.2f".format(speed).trimEnd('0').trimEnd('.')
+    return "${s}x"
 }

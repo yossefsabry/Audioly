@@ -25,12 +25,12 @@ import kotlinx.coroutines.flow.update
 class AudioPlayer(
     context: Context,
     private val audioCacheManager: AudioCacheManager,
-) {
+) : PlayerHandle {
 
     internal val exoPlayer: ExoPlayer = buildExoPlayer(context, audioCacheManager)
 
     private val _state = MutableStateFlow(PlayerState())
-    val state: StateFlow<PlayerState> = _state.asStateFlow()
+    override val state: StateFlow<PlayerState> = _state.asStateFlow()
 
     private var currentMeta = Meta()
 
@@ -61,7 +61,7 @@ class AudioPlayer(
 
     // ─── Playback control ─────────────────────────────────────────────────────
 
-    fun load(
+    override fun load(
         audioUrl: String,
         videoId: String,
         title: String,
@@ -108,39 +108,39 @@ class AudioPlayer(
         }
     }
 
-    fun play() { if (!released) { exoPlayer.play(); updateState() } }
-    fun pause() { if (!released) { exoPlayer.pause(); updateState() } }
-    fun togglePlayPause() { if (!released) { if (exoPlayer.isPlaying) pause() else play() } }
+    override fun play() { if (!released) { exoPlayer.play(); updateState() } }
+    override fun pause() { if (!released) { exoPlayer.pause(); updateState() } }
+    override fun togglePlayPause() { if (!released) { if (exoPlayer.isPlaying) pause() else play() } }
 
-    fun seekTo(positionMs: Long) {
+    override fun seekTo(positionMs: Long) {
         if (released) return
         exoPlayer.seekTo(positionMs)
         updateState()
     }
 
-    fun skipForward(intervalMs: Long) {
+    override fun skipForward(intervalMs: Long) {
         if (released) return
         val duration = exoPlayer.duration
         if (duration == C.TIME_UNSET) return
         seekTo((exoPlayer.currentPosition + intervalMs).coerceAtMost(duration))
     }
-    fun skipBack(intervalMs: Long) {
+    override fun skipBack(intervalMs: Long) {
         if (released) return
         seekTo((exoPlayer.currentPosition - intervalMs).coerceAtLeast(0L))
     }
 
-    fun setSpeed(speed: Float) {
+    override fun setSpeed(speed: Float) {
         if (released) return
         exoPlayer.setPlaybackSpeed(speed)
         updateState()
     }
 
-    fun setSubtitleLanguage(languageCode: String) {
+    override fun setSubtitleLanguage(languageCode: String) {
         if (released) return
         _state.update { it.copy(selectedSubtitleLanguage = languageCode) }
     }
 
-    fun setSubtitleIndex(index: Int) {
+    override fun setSubtitleIndex(index: Int) {
         if (released) return
         _state.update { it.copy(currentSubtitleIndex = index) }
     }

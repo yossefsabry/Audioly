@@ -100,6 +100,8 @@ private class FakeTrackDao(private val initial: List<TrackEntity>) : TrackDao {
 
     override suspend fun setAudioFilePath(videoId: String, path: String?) {}
 
+    override suspend fun setAudioStreamUrl(videoId: String, url: String?) {}
+
     override suspend fun delete(videoId: String) {
         state.value = state.value.filterNot { it.videoId == videoId }
     }

@@ -13,6 +13,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentLinkedDeque
+import java.util.concurrent.Executors
 
 /**
  * Application-wide logger. Stores entries in-memory (circular buffer) and
@@ -84,16 +85,25 @@ object AppLogger {
 
     private val bufferLock = Any()
 
+    /** Single-thread executor for file I/O — avoids blocking callers (main/UI). */
+    private val fileExecutor = Executors.newSingleThreadExecutor { r ->
+        Thread(r, "AppLogger-file").apply { isDaemon = true }
+    }
+
     // ─── Internal ─────────────────────────────────────────────────────────────
 
     private fun log(level: LogLevel, tag: String, message: String, throwable: Throwable? = null) {
         // Also send to Android logcat
-        when (level) {
-            LogLevel.DEBUG -> Log.d(tag, message, throwable)
-            LogLevel.INFO -> Log.i(tag, message, throwable)
-            LogLevel.WARN -> Log.w(tag, message, throwable)
-            LogLevel.ERROR -> Log.e(tag, message, throwable)
-            LogLevel.FATAL -> Log.e(tag, "FATAL: $message", throwable)
+        try {
+            when (level) {
+                LogLevel.DEBUG -> Log.d(tag, message, throwable)
+                LogLevel.INFO -> Log.i(tag, message, throwable)
+                LogLevel.WARN -> Log.w(tag, message, throwable)
+                LogLevel.ERROR -> Log.e(tag, message, throwable)
+                LogLevel.FATAL -> Log.e(tag, "FATAL: $message", throwable)
+            }
+        } catch (_: RuntimeException) {
+            // JVM unit tests do not mock android.util.Log.
         }
 
         val traceString = throwable?.let { stackTraceToString(it) }
@@ -113,49 +123,84 @@ object AppLogger {
             _entries.value = buffer.toList()
         }
 
-        // Append to file (fire-and-forget, don't block caller)
-        appendToFile(entry)
+        // Append to file async (fire-and-forget, don't block caller)
+        fileExecutor.execute { appendToFile(entry) }
     }
 
+    /** Runs on [fileExecutor] thread — never on main thread. */
     private fun appendToFile(entry: LogEntry) {
-        synchronized(bufferLock) {
-            val file = logFile ?: return
-            try {
-                // Rotate if too large
-                if (file.exists() && file.length() > MAX_FILE_SIZE) {
-                    val backup = File(file.parent, "audioly_prev.log")
-                    if (backup.exists()) backup.delete()
-                    val renamed = file.renameTo(backup)
-                    if (renamed) {
-                        logFile = File(file.parent, LOG_FILE_NAME)
-                    } else {
-                        // renameTo failed — truncate the existing file instead of losing it
-                        file.writeText("")
-                    }
+        val file = logFile ?: return
+        try {
+            // Rotate if too large
+            if (file.exists() && file.length() > MAX_FILE_SIZE) {
+                val backup = File(file.parent, "audioly_prev.log")
+                if (backup.exists()) backup.delete()
+                val renamed = file.renameTo(backup)
+                if (renamed) {
+                    logFile = File(file.parent, LOG_FILE_NAME)
+                } else {
+                    // renameTo failed — truncate the existing file instead of losing it
+                    file.writeText("")
                 }
-                FileWriter(logFile, true).use { writer ->
-                    writer.appendLine(entry.formatted())
-                }
-            } catch (_: Exception) {
-                // Can't log a logging failure — just drop it
             }
+            FileWriter(logFile, true).use { writer ->
+                writer.appendLine(entry.formatted())
+            }
+        } catch (_: Exception) {
+            // Can't log a logging failure — just drop it
         }
     }
+
+    /** Regex to parse formatted log lines: "MM-dd HH:mm:ss.SSS  L  [tag]  message" */
+    private val LOG_LINE_REGEX = Regex("""^(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s{2}([DIWEF])\s{2}\[(.+?)]\s{2}(.*)$""")
 
     private fun loadPreviousLogs() {
         val file = logFile ?: return
         if (!file.exists() || file.length() == 0L) return
         try {
-            // Add a separator for previous session
+            val lines = file.readLines()
+            val parsed = mutableListOf<LogEntry>()
+            for (line in lines) {
+                val match = LOG_LINE_REGEX.matchEntire(line)
+                if (match != null) {
+                    val level = when (match.groupValues[2]) {
+                        "D" -> LogLevel.DEBUG
+                        "I" -> LogLevel.INFO
+                        "W" -> LogLevel.WARN
+                        "E" -> LogLevel.ERROR
+                        "F" -> LogLevel.FATAL
+                        else -> LogLevel.INFO
+                    }
+                    parsed += LogEntry(
+                        level = level,
+                        tag = match.groupValues[3],
+                        message = match.groupValues[4],
+                    )
+                } else if (parsed.isNotEmpty() && line.isNotBlank()) {
+                    // Stack trace continuation — append to previous entry's throwable
+                    val prev = parsed.last()
+                    parsed[parsed.lastIndex] = prev.copy(
+                        throwable = (prev.throwable?.plus("\n") ?: "") + line,
+                    )
+                }
+            }
+            if (parsed.isEmpty()) return
+
+            // Add separator then previous entries (oldest→newest already in file order)
             val separator = LogEntry(
                 level = LogLevel.INFO,
                 tag = "AppLogger",
                 message = "──── Previous session logs above ────",
             )
-            buffer.addLast(separator)
-            _entries.value = buffer.toList()
+            synchronized(bufferLock) {
+                for (entry in parsed.takeLast(MAX_ENTRIES / 2)) {
+                    buffer.addLast(entry)
+                }
+                buffer.addLast(separator)
+                _entries.value = buffer.toList()
+            }
         } catch (_: Exception) {
-            // Ignore
+            // Ignore — best-effort loading
         }
     }
 

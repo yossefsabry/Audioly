@@ -2,6 +2,7 @@ package com.audioly.app.player
 
 import com.audioly.app.extraction.SubtitleTrack
 import com.audioly.app.util.AppLogger
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,12 +21,14 @@ import kotlinx.coroutines.flow.update
  * Handles the race condition where load() is called before the AudioService
  * is bound by queuing the pending load and replaying it on attach().
  */
-class PlayerRepository {
+class PlayerRepository(
+    mainDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
+) {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val scope = CoroutineScope(SupervisorJob() + mainDispatcher)
 
     @Volatile
-    private var playerRef: AudioPlayer? = null
+    private var playerRef: PlayerHandle? = null
 
     // Fallback state for when player isn't attached yet
     private val _fallbackState = MutableStateFlow(PlayerState())
@@ -53,24 +56,39 @@ class PlayerRepository {
     // Guarded by @Synchronized on attach() and load() to prevent races
     // between service binder thread and Main thread
     private var pendingLoad: PendingLoad? = null
+    private var lastLoad: PendingLoad? = null
+    private var pendingResumePositionMs: Long? = null
 
     // ─── Called by AudioService binder ────────────────────────────────────────
 
     @Synchronized
-    fun attach(player: AudioPlayer) {
+    fun attach(player: PlayerHandle) {
+        val queuedLoad = pendingLoad
+        val keepFallbackState = queuedLoad != null || (player.state.value.isEmpty && !_fallbackState.value.isEmpty)
         playerRef = player
-        _activePlayerState.value = player.state
-        // Replay any queued load
-        pendingLoad?.let { p ->
+        _activePlayerState.value = if (keepFallbackState) _fallbackState else player.state
+        // Replay any queued load before switching UI to the live player state.
+        queuedLoad?.let { p ->
             AppLogger.d(TAG, "Replaying pending load for ${p.videoId}")
             player.load(p.audioUrl, p.videoId, p.title, p.uploader, p.thumbnailUrl, p.durationMs)
+            pendingResumePositionMs?.let { positionMs ->
+                if (positionMs > 0L) player.seekTo(positionMs)
+                pendingResumePositionMs = null
+            }
             pendingLoad = null
         }
+        _activePlayerState.value = player.state
     }
 
     @Synchronized
     fun detach() {
         AppLogger.d(TAG, "Player detached")
+        playerRef?.state?.value?.let { liveState ->
+            _fallbackState.value = liveState.copy(
+                isPlaying = false,
+                isBuffering = false,
+            )
+        }
         playerRef = null
         _activePlayerState.value = _fallbackState
     }
@@ -86,13 +104,15 @@ class PlayerRepository {
         thumbnailUrl: String,
         durationMs: Long,
     ) {
+        val request = PendingLoad(audioUrl, videoId, title, uploader, thumbnailUrl, durationMs)
+        lastLoad = request
         val player = playerRef
         if (player != null) {
             player.load(audioUrl, videoId, title, uploader, thumbnailUrl, durationMs)
         } else {
             // Queue for replay when service binds
             AppLogger.d(TAG, "Queuing load for $videoId (service not bound yet)")
-            pendingLoad = PendingLoad(audioUrl, videoId, title, uploader, thumbnailUrl, durationMs)
+            pendingLoad = request
             // Update fallback state so the UI shows something
             _fallbackState.value = PlayerState(
                 videoId = videoId,
@@ -105,15 +125,43 @@ class PlayerRepository {
         }
     }
 
-    fun play() = playerRef?.play()
-    fun pause() = playerRef?.pause()
-    fun togglePlayPause() = playerRef?.togglePlayPause()
-    fun seekTo(positionMs: Long) = playerRef?.seekTo(positionMs)
-    fun skipForward(intervalMs: Long = 15_000L) = playerRef?.skipForward(intervalMs)
-    fun skipBack(intervalMs: Long = 15_000L) = playerRef?.skipBack(intervalMs)
-    fun setSpeed(speed: Float) = playerRef?.setSpeed(speed)
-    fun setSubtitleLanguage(languageCode: String) = playerRef?.setSubtitleLanguage(languageCode)
-    fun setSubtitleIndex(index: Int) = playerRef?.setSubtitleIndex(index)
+    @Synchronized
+    fun play() {
+        val player = playerRef
+        if (player != null) {
+            if (player.state.value.isEmpty && lastLoad != null) {
+                resumeLastLoad(player)
+                return
+            }
+            player.play()
+        } else {
+            queueResumeForAttach()
+        }
+    }
+
+    @Synchronized
+    fun pause() { playerRef?.pause() }
+
+    @Synchronized
+    fun togglePlayPause() {
+        val player = playerRef
+        if (player != null) {
+            if (player.state.value.isEmpty && lastLoad != null) {
+                resumeLastLoad(player)
+                return
+            }
+            player.togglePlayPause()
+        } else {
+            queueResumeForAttach()
+        }
+    }
+
+    @Synchronized fun seekTo(positionMs: Long) { playerRef?.seekTo(positionMs) }
+    @Synchronized fun skipForward(intervalMs: Long = 15_000L) { playerRef?.skipForward(intervalMs) }
+    @Synchronized fun skipBack(intervalMs: Long = 15_000L) { playerRef?.skipBack(intervalMs) }
+    @Synchronized fun setSpeed(speed: Float) { playerRef?.setSpeed(speed) }
+    @Synchronized fun setSubtitleLanguage(languageCode: String) { playerRef?.setSubtitleLanguage(languageCode) }
+    @Synchronized fun setSubtitleIndex(index: Int) { playerRef?.setSubtitleIndex(index) }
 
     // ─── Subtitle data ───────────────────────────────────────────────────────
 
@@ -132,6 +180,41 @@ class PlayerRepository {
         // Also clear player-side selection so auto-select fires for the next video
         playerRef?.setSubtitleLanguage("")
         playerRef?.setSubtitleIndex(-1)
+    }
+
+    @Synchronized
+    private fun queueResumeForAttach() {
+        val request = lastLoad ?: return
+        AppLogger.d(TAG, "Queueing detached resume for ${request.videoId}")
+        pendingLoad = request
+        pendingResumePositionMs = _fallbackState.value.positionMs.takeIf { it > 0L }
+        _fallbackState.value = PlayerState(
+            videoId = request.videoId,
+            title = request.title,
+            uploader = request.uploader,
+            thumbnailUrl = request.thumbnailUrl,
+            durationMs = request.durationMs,
+            isBuffering = true,
+            positionMs = _fallbackState.value.positionMs,
+        )
+    }
+
+    private fun resumeLastLoad(player: PlayerHandle) {
+        val request = lastLoad ?: return
+        val resumePositionMs = _fallbackState.value.positionMs.takeIf { it > 0L }
+        AppLogger.d(TAG, "Replaying last load directly for ${request.videoId}")
+        player.load(
+            audioUrl = request.audioUrl,
+            videoId = request.videoId,
+            title = request.title,
+            uploader = request.uploader,
+            thumbnailUrl = request.thumbnailUrl,
+            durationMs = request.durationMs,
+        )
+        if (resumePositionMs != null) {
+            player.seekTo(resumePositionMs)
+        }
+        _activePlayerState.value = player.state
     }
 
     private data class PendingLoad(

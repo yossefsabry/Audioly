@@ -8,12 +8,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.audioly.app.data.model.Track
 import com.audioly.app.data.repository.CacheRepository
 import com.audioly.app.data.repository.TrackRepository
 import com.audioly.app.ui.components.TrackItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun HistoryTab(
@@ -24,8 +27,15 @@ fun HistoryTab(
 ) {
     val history by trackRepository.observeHistory().collectAsState(initial = emptyList())
     val cacheVersion by cacheRepository.cacheVersion.collectAsState()
-    @Suppress("UNUSED_VARIABLE")
-    val cacheRefreshKey = cacheVersion
+
+    // Pre-compute cache status off main thread to avoid jank on large lists
+    val cacheStatusMap by produceState<Map<String, Boolean>>(
+        emptyMap(), history, cacheVersion,
+    ) {
+        value = withContext(Dispatchers.IO) {
+            history.associate { it.videoId to cacheRepository.hasCachedAudio(it.videoId) }
+        }
+    }
 
     if (history.isEmpty()) {
         Box(
@@ -39,7 +49,7 @@ fun HistoryTab(
             items(history, key = { it.videoId }) { track ->
                 TrackItem(
                     track = track,
-                    isCached = cacheRepository.hasCachedAudio(track.videoId),
+                    isCached = cacheStatusMap[track.videoId] ?: false,
                     onClick = { onTrackClick(track) },
                 )
             }

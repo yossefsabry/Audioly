@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -38,6 +37,8 @@ import com.audioly.app.player.PlaybackController
 
 class MainActivity : ComponentActivity() {
 
+    private var sharedUrlState: MutableState<String?>? = null
+
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -46,7 +47,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val initialUrl = intent?.resolveSharedUrl()
         val app = application as AudiolyApp
 
         // Request notification permission (required on Android 13+ for foreground service)
@@ -68,15 +68,26 @@ class MainActivity : ComponentActivity() {
             }
 
             AudiolyTheme(darkTheme = darkTheme) {
-                AudiolyMainContent(initialUrl = initialUrl, app = app)
+                val sharedUrl = remember { mutableStateOf(intent?.resolveSharedUrl()) }
+                LaunchedEffect(sharedUrl) {
+                    sharedUrlState = sharedUrl
+                }
+                DisposableEffect(Unit) {
+                    onDispose {
+                        if (sharedUrlState === sharedUrl) {
+                            sharedUrlState = null
+                        }
+                    }
+                }
+                AudiolyMainContent(initialUrl = sharedUrl.value, app = app)
             }
         }
     }
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
-        // For singleTask, new shares while already open
-        // In a full impl we'd update a MutableState; for now covered by the existing flow
+        setIntent(intent)
+        sharedUrlState?.value = intent?.resolveSharedUrl()
     }
 
     /**
@@ -110,9 +121,18 @@ class MainActivity : ComponentActivity() {
 private fun AudiolyMainContent(initialUrl: String?, app: AudiolyApp) {
     val navController = rememberNavController()
     val playerState by app.playerRepository.state.collectAsState()
+    var pendingSharedUrl by remember(initialUrl) { mutableStateOf(initialUrl) }
 
-    // Track whether the share intent URL has been consumed (survives config changes)
-    var consumedInitialUrl by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(initialUrl) {
+        if (initialUrl != null) {
+            pendingSharedUrl = initialUrl
+            navController.navigate(Screen.Home.route) {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -129,7 +149,9 @@ private fun AudiolyMainContent(initialUrl: String?, app: AudiolyApp) {
                         onTogglePlayPause = { app.playerRepository.togglePlayPause() },
                         onTap = {
                             playerState.videoId?.let { videoId ->
-                                navController.navigate(Screen.Player.createRoute(videoId))
+                                navController.navigate(Screen.Player.createRoute(videoId)) {
+                                    launchSingleTop = true
+                                }
                             }
                         },
                     )
@@ -164,25 +186,28 @@ private fun AudiolyMainContent(initialUrl: String?, app: AudiolyApp) {
         Box(modifier = Modifier.padding(innerPadding)) {
             NavHost(navController = navController, startDestination = Screen.Home.route) {
                 composable(Screen.Home.route) {
-                    // Pass the initial URL from share intent (consumed once)
-                    val urlForHome = if (!consumedInitialUrl) {
-                        consumedInitialUrl = true
-                        initialUrl
-                    } else null
-
                     HomeScreen(
                         app = app,
                         onNavigateToPlayer = { videoId ->
-                            navController.navigate(Screen.Player.createRoute(videoId))
+                            navController.navigate(Screen.Player.createRoute(videoId)) {
+                                launchSingleTop = true
+                            }
                         },
-                        initialUrl = urlForHome,
+                        initialUrl = pendingSharedUrl,
                     )
+                    LaunchedEffect(pendingSharedUrl) {
+                        if (pendingSharedUrl != null) {
+                            pendingSharedUrl = null
+                        }
+                    }
                 }
                 composable(Screen.Library.route) {
                     LibraryScreen(
                         app = app,
                         onNavigateToPlayer = { videoId ->
-                            navController.navigate(Screen.Player.createRoute(videoId))
+                            navController.navigate(Screen.Player.createRoute(videoId)) {
+                                launchSingleTop = true
+                            }
                         },
                     )
                 }

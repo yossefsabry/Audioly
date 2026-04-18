@@ -33,7 +33,7 @@ class SubtitleManager(cues: List<SubtitleCue> = emptyList()) {
             val cue = cues[mid]
             when {
                 positionMs < cue.startMs -> hi = mid - 1
-                positionMs > cue.endMs -> lo = mid + 1
+                positionMs >= cue.endMs -> lo = mid + 1
                 else -> { candidate = mid; hi = mid - 1 } // keep searching left for earliest overlapping cue
             }
         }

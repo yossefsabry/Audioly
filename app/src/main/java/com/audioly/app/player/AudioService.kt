@@ -115,8 +115,12 @@ class AudioService : MediaSessionService() {
     private fun startPositionTicker() {
         tickJob = serviceScope.launch {
             while (true) {
-                player.tick()
-                recordPlaybackStartIfNeeded()
+                val s = player.state.value
+                // Only tick when actively playing or buffering — skip idle/error to save CPU
+                if (s.isPlaying || s.isBuffering) {
+                    player.tick()
+                    recordPlaybackStartIfNeeded()
+                }
                 delay(TICK_INTERVAL_MS)
             }
         }
