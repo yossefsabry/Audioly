@@ -28,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -40,12 +41,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.audioly.app.R
 import com.audioly.app.AudiolyApp
-import com.audioly.app.extraction.ExtractionResult
+import com.audioly.app.ui.playback.launchPlaybackFromUrl
+import com.audioly.app.ui.playback.launchPlaybackFromVideoId
 import com.audioly.app.ui.components.TrackItem
 import com.audioly.app.ui.components.UrlInput
-import com.audioly.app.util.AppLogger
-import com.audioly.app.util.UrlValidator
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,7 +57,7 @@ fun HomeScreen(
     /** Pre-populated from share intent; consumed once. */
     initialUrl: String? = null,
 ) {
-    var urlInput by remember { mutableStateOf(initialUrl ?: "") }
+    var urlInput by remember(initialUrl) { mutableStateOf(initialUrl ?: "") }
     var urlError by remember { mutableStateOf<String?>(null) }
     var isExtracting by remember { mutableStateOf(false) }
 
@@ -63,10 +65,17 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Pre-compute cache statuses off main thread to avoid jank
+    val cacheStatusMap by produceState<Map<String, Boolean>>(emptyMap(), history) {
+        value = withContext(Dispatchers.IO) {
+            history.associate { it.videoId to app.cacheRepository.getAudioStatus(it.videoId).hasCache }
+        }
+    }
+
     // Auto-trigger extraction if launched from share intent
     LaunchedEffect(initialUrl) {
         if (!initialUrl.isNullOrBlank()) {
-            handleGo(
+            launchPlaybackFromUrl(
                 url = initialUrl,
                 app = app,
                 onNavigateToPlayer = onNavigateToPlayer,
@@ -133,7 +142,7 @@ fun HomeScreen(
                 onValueChange = { urlInput = it; urlError = null },
                 onGo = { url ->
                     scope.launch {
-                        handleGo(
+                        launchPlaybackFromUrl(
                             url = url,
                             app = app,
                             onNavigateToPlayer = onNavigateToPlayer,
@@ -178,13 +187,12 @@ fun HomeScreen(
                 } else {
                     LazyColumn {
                         items(history, key = { it.videoId }) { track ->
-                            val cacheStatus = app.cacheRepository.getAudioStatus(track.videoId)
                             TrackItem(
                                 track = track,
-                                isCached = cacheStatus.hasCache,
+                                isCached = cacheStatusMap[track.videoId] ?: false,
                                 onClick = {
                                     scope.launch {
-                                        handleHistoryTap(
+                                        launchPlaybackFromVideoId(
                                             videoId = track.videoId,
                                             app = app,
                                             onNavigateToPlayer = onNavigateToPlayer,
@@ -201,154 +209,4 @@ fun HomeScreen(
             }
         }
     }
-}
-
-// ─── Extraction flow ──────────────────────────────────────────────────────────
-
-private const val TAG = "HomeScreen"
-
-private suspend fun handleGo(
-    url: String,
-    app: AudiolyApp,
-    onNavigateToPlayer: (String) -> Unit,
-    setError: (String?) -> Unit,
-    setExtracting: (Boolean) -> Unit,
-    isCurrentlyIdle: Boolean,
-    snackbarHostState: androidx.compose.material3.SnackbarHostState,
-) {
-    val videoId = UrlValidator.extractVideoId(url)
-    if (videoId == null) {
-        setError(if (url.isBlank()) "Enter a YouTube URL" else "Not a valid YouTube URL")
-        return
-    }
-    setError(null)
-    // Guard against concurrent extractions
-    if (!isCurrentlyIdle) {
-        AppLogger.w(TAG, "Extraction already in progress, ignoring duplicate request")
-        return
-    }
-
-    // ── Try cache-backed instant playback ─────────────────────────────────
-    if (tryPlayFromCache(videoId, app, onNavigateToPlayer)) return
-
-    // ── Fallback: full extraction ─────────────────────────────────────────
-    setExtracting(true)
-    try {
-        AppLogger.i(TAG, "Extracting: $url")
-        when (val result = app.youTubeExtractor.extract(url)) {
-            is ExtractionResult.Success -> {
-                val info = result.streamInfo
-                try {
-                    app.trackRepository.upsertFromExtraction(info)
-                    // Persist audio URL so cache-backed replay works next time
-                    app.trackRepository.setAudioStreamUrl(info.videoId, info.audioStreamUrl)
-                } catch (e: Exception) {
-                    AppLogger.e(TAG, "Failed to save track to DB", e)
-                }
-                // Clear old subtitle data and set new tracks
-                app.playerRepository.clearSubtitles()
-                app.playerRepository.setSubtitleTracks(info.subtitleTracks)
-                // Load audio into player
-                app.playerRepository.load(
-                    audioUrl = info.audioStreamUrl,
-                    videoId = info.videoId,
-                    title = info.title,
-                    uploader = info.uploader,
-                    thumbnailUrl = info.thumbnailUrl,
-                    durationMs = info.durationSeconds * 1000L,
-                )
-                onNavigateToPlayer(info.videoId)
-            }
-            is ExtractionResult.Failure.InvalidUrl ->
-                setError("Not a valid YouTube URL")
-            is ExtractionResult.Failure.VideoUnavailable ->
-                snackbarHostState.showSnackbar("Video unavailable")
-            is ExtractionResult.Failure.AgeRestricted ->
-                snackbarHostState.showSnackbar("Age-restricted video — cannot play")
-            is ExtractionResult.Failure.NetworkError ->
-                snackbarHostState.showSnackbar("Network error. Check your connection.")
-            is ExtractionResult.Failure.ExtractionFailed ->
-                snackbarHostState.showSnackbar("Extraction failed: ${result.cause.message ?: "unknown error"}")
-        }
-    } catch (e: Exception) {
-        AppLogger.e(TAG, "Unexpected error during extraction", e)
-        snackbarHostState.showSnackbar("Something went wrong: ${e.message ?: "unknown error"}")
-    } finally {
-        setExtracting(false)
-    }
-}
-
-/**
- * Attempt to play a video entirely from cache.
- * Returns true if successful (caller should skip extraction).
- */
-private suspend fun tryPlayFromCache(
-    videoId: String,
-    app: AudiolyApp,
-    onNavigateToPlayer: (String) -> Unit,
-): Boolean {
-    try {
-        val cacheStatus = app.cacheRepository.getAudioStatus(videoId)
-        if (!cacheStatus.isFullyCached) {
-            AppLogger.d(
-                TAG,
-                "tryPlayFromCache($videoId): fullyCached=false, hasCache=${cacheStatus.hasCache}, cachedBytes=${cacheStatus.cachedBytes} - falling back to extraction",
-            )
-            return false
-        }
-        val track = app.trackRepository.getById(videoId)
-        if (track == null) {
-            AppLogger.d(TAG, "tryPlayFromCache($videoId): fully cached but no DB record")
-            return false
-        }
-        val audioUrl = track.audioStreamUrl
-        if (audioUrl.isNullOrBlank()) {
-            AppLogger.d(TAG, "tryPlayFromCache($videoId): fully cached but no stored audioUrl")
-            return false
-        }
-
-        AppLogger.i(TAG, "Playing from cache: $videoId (${cacheStatus.cachedBytes} bytes)")
-        app.playerRepository.clearSubtitles()
-        app.playerRepository.load(
-            audioUrl = audioUrl,
-            videoId = videoId,
-            title = track.title,
-            uploader = track.uploader,
-            thumbnailUrl = track.thumbnailUrl,
-            durationMs = track.durationSeconds * 1000L,
-        )
-        onNavigateToPlayer(videoId)
-        return true
-    } catch (e: Exception) {
-        AppLogger.w(TAG, "Cache playback failed, falling back to extraction: ${e.message}")
-        return false
-    }
-}
-
-/**
- * Handle tap on a history item. Tries cache first, falls back to extraction.
- */
-private suspend fun handleHistoryTap(
-    videoId: String,
-    app: AudiolyApp,
-    onNavigateToPlayer: (String) -> Unit,
-    setExtracting: (Boolean) -> Unit,
-    isCurrentlyIdle: Boolean,
-    snackbarHostState: androidx.compose.material3.SnackbarHostState,
-) {
-    if (!isCurrentlyIdle) return
-
-    // Try instant cache playback
-    if (tryPlayFromCache(videoId, app, onNavigateToPlayer)) return
-
-    // Fallback: re-extract using a constructed YouTube URL
-    handleGo(
-        url = "https://www.youtube.com/watch?v=$videoId",
-        app = app,
-        onNavigateToPlayer = onNavigateToPlayer,
-        setError = { /* History tap has no URL field to show errors */ },
-        setExtracting = setExtracting,
-        isCurrentlyIdle = isCurrentlyIdle,
-        snackbarHostState = snackbarHostState,
-    )
 }

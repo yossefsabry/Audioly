@@ -12,14 +12,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.audioly.app.data.cache.AudioCacheStatus
 import com.audioly.app.data.model.Track
 import com.audioly.app.data.repository.CacheRepository
 import com.audioly.app.data.repository.TrackRepository
 import com.audioly.app.ui.components.TrackItem
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun CachedTab(
@@ -31,11 +35,20 @@ fun CachedTab(
     val allTracks by trackRepository.observeAll().collectAsState(initial = emptyList())
     val cacheVersion by cacheRepository.cacheVersion.collectAsState()
     val scope = rememberCoroutineScope()
-    @Suppress("UNUSED_VARIABLE")
-    val cacheRefreshKey = cacheVersion
-    val cached = allTracks.filter { cacheRepository.hasCachedAudio(it.videoId) }
 
-    if (cached.isEmpty()) {
+    // Compute cached tracks + statuses off the main thread to avoid jank
+    val cachedWithStatus by produceState<List<Pair<Track, AudioCacheStatus>>>(
+        emptyList(), allTracks, cacheVersion,
+    ) {
+        value = withContext(Dispatchers.IO) {
+            allTracks.mapNotNull { track ->
+                val status = cacheRepository.getAudioStatus(track.videoId)
+                if (status.hasCache) track to status else null
+            }
+        }
+    }
+
+    if (cachedWithStatus.isEmpty()) {
         Box(
             modifier = modifier.fillMaxSize(),
             contentAlignment = Alignment.Center,
@@ -44,8 +57,7 @@ fun CachedTab(
         }
     } else {
         LazyColumn(modifier = modifier) {
-            items(cached, key = { it.videoId }) { track ->
-                val status = cacheRepository.getAudioStatus(track.videoId)
+            items(cachedWithStatus, key = { it.first.videoId }) { (track, status) ->
                 TrackItem(
                     track = track,
                     isCached = status.hasCache,

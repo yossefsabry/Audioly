@@ -38,7 +38,7 @@ class AudioCacheManager(context: Context, maxBytes: Long = DEFAULT_MAX_BYTES) {
 
     private val cacheDir = File(context.cacheDir, CACHE_DIR_NAME).also { it.mkdirs() }
     private val databaseProvider: StandaloneDatabaseProvider
-    private val lastKnownStatus = mutableMapOf<String, AudioCacheStatus>()
+    private val lastKnownStatus = java.util.concurrent.ConcurrentHashMap<String, AudioCacheStatus>()
     private val _cacheVersion = MutableStateFlow(0L)
 
     val cacheVersion: StateFlow<Long> = _cacheVersion.asStateFlow()
@@ -116,6 +116,7 @@ class AudioCacheManager(context: Context, maxBytes: Long = DEFAULT_MAX_BYTES) {
         getStatus(videoId).cachedBytes
 
     /** Remove all cached audio. */
+    @Synchronized
     fun clearAll() {
         for (key in cache.keys.toList()) {
             cache.removeResource(key)
@@ -125,6 +126,7 @@ class AudioCacheManager(context: Context, maxBytes: Long = DEFAULT_MAX_BYTES) {
     }
 
     /** Remove audio for a specific video ID. */
+    @Synchronized
     fun deleteForVideo(videoId: String) {
         cache.removeResource(videoId)
         lastKnownStatus.remove(videoId)
