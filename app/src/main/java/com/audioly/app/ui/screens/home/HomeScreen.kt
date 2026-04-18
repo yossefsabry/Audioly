@@ -27,63 +27,47 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.audioly.app.R
-import com.audioly.app.AudiolyApp
-import com.audioly.app.ui.playback.launchPlaybackFromUrl
-import com.audioly.app.ui.playback.launchPlaybackFromVideoId
 import com.audioly.app.ui.components.TrackItem
 import com.audioly.app.ui.components.UrlInput
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.audioly.app.ui.viewmodel.HomeEvent
+import com.audioly.app.ui.viewmodel.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    app: AudiolyApp,
+    viewModel: HomeViewModel,
     onNavigateToPlayer: (String) -> Unit = {},
     /** Pre-populated from share intent; consumed once. */
     initialUrl: String? = null,
 ) {
-    var urlInput by remember(initialUrl) { mutableStateOf(initialUrl ?: "") }
-    var urlError by remember { mutableStateOf<String?>(null) }
-    var isExtracting by remember { mutableStateOf(false) }
-
-    val history by app.trackRepository.observeHistory(limit = 10).collectAsState(initial = emptyList())
-    val scope = rememberCoroutineScope()
+    val urlInput by viewModel.urlInput.collectAsState()
+    val urlError by viewModel.urlError.collectAsState()
+    val isExtracting by viewModel.isExtracting.collectAsState()
+    val historyWithCache by viewModel.historyWithCache.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Pre-compute cache statuses off main thread to avoid jank
-    val cacheStatusMap by produceState<Map<String, Boolean>>(emptyMap(), history) {
-        value = withContext(Dispatchers.IO) {
-            history.associate { it.videoId to app.cacheRepository.getAudioStatus(it.videoId).hasCache }
+    // Consume one-shot events
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is HomeEvent.NavigateToPlayer -> onNavigateToPlayer(event.videoId)
+                is HomeEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
+            }
         }
     }
 
     // Auto-trigger extraction if launched from share intent
     LaunchedEffect(initialUrl) {
         if (!initialUrl.isNullOrBlank()) {
-            launchPlaybackFromUrl(
-                url = initialUrl,
-                app = app,
-                onNavigateToPlayer = onNavigateToPlayer,
-                setError = { urlError = it },
-                setExtracting = { isExtracting = it },
-                isCurrentlyIdle = !isExtracting,
-                snackbarHostState = snackbarHostState,
-            )
+            viewModel.handleShareIntent(initialUrl)
         }
     }
 
@@ -122,7 +106,7 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp), // Increased spacing for modern airy feel
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
@@ -139,20 +123,8 @@ fun HomeScreen(
 
             UrlInput(
                 value = urlInput,
-                onValueChange = { urlInput = it; urlError = null },
-                onGo = { url ->
-                    scope.launch {
-                        launchPlaybackFromUrl(
-                            url = url,
-                            app = app,
-                            onNavigateToPlayer = onNavigateToPlayer,
-                            setError = { urlError = it },
-                            setExtracting = { isExtracting = it },
-                            isCurrentlyIdle = !isExtracting,
-                            snackbarHostState = snackbarHostState,
-                        )
-                    }
-                },
+                onValueChange = { viewModel.updateUrl(it) },
+                onGo = { url -> viewModel.submitUrl(url) },
                 error = urlError,
                 enabled = !isExtracting,
             )
@@ -178,7 +150,7 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
 
-                if (history.isEmpty()) {
+                if (historyWithCache.isEmpty()) {
                     Text(
                         "No recent videos yet.",
                         style = MaterialTheme.typography.bodyMedium,
@@ -186,22 +158,11 @@ fun HomeScreen(
                     )
                 } else {
                     LazyColumn {
-                        items(history, key = { it.videoId }) { track ->
+                        items(historyWithCache, key = { it.first.videoId }) { (track, isCached) ->
                             TrackItem(
                                 track = track,
-                                isCached = cacheStatusMap[track.videoId] ?: false,
-                                onClick = {
-                                    scope.launch {
-                                        launchPlaybackFromVideoId(
-                                            videoId = track.videoId,
-                                            app = app,
-                                            onNavigateToPlayer = onNavigateToPlayer,
-                                            setExtracting = { isExtracting = it },
-                                            isCurrentlyIdle = !isExtracting,
-                                            snackbarHostState = snackbarHostState,
-                                        )
-                                    }
-                                },
+                                isCached = isCached,
+                                onClick = { viewModel.playTrack(track) },
                             )
                         }
                     }

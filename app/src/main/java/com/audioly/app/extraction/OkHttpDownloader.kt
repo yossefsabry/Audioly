@@ -1,11 +1,10 @@
 package com.audioly.app.extraction
 
-import okhttp3.OkHttpClient
+import com.audioly.app.network.AppHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.schabi.newpipe.extractor.downloader.Downloader
 import org.schabi.newpipe.extractor.downloader.Request
 import org.schabi.newpipe.extractor.downloader.Response
-import java.util.concurrent.TimeUnit
 
 /**
  * OkHttp-based Downloader implementation for NewPipe Extractor.
@@ -13,10 +12,7 @@ import java.util.concurrent.TimeUnit
  */
 internal class OkHttpDownloader private constructor() : Downloader() {
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .build()
+    private val client = AppHttpClient.newPipeClient
 
     override fun execute(request: Request): Response {
         val reqBuilder = okhttp3.Request.Builder().url(request.url())

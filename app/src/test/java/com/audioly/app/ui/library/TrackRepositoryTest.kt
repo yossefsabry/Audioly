@@ -15,7 +15,7 @@ import org.junit.Test
  * Unit tests for library data layer behavior (history ordering, cached-filter).
  * Exercises TrackRepository with a fake DAO — no Android dependencies.
  */
-class LibraryViewModelTest {
+class TrackRepositoryTest {
 
     private fun track(
         videoId: String,
