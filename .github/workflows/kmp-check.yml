@@ -27,6 +27,12 @@ jobs:
       - name: Run Unit Tests
         run: ./gradlew :app:testDebugUnitTest :shared:testDebugUnitTest
 
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: audioly-android-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+
   ios-check:
     runs-on: macos-latest
     steps:
@@ -52,4 +58,26 @@ jobs:
             -scheme iosApp \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO
+
+      - name: Package iOS App
+        run: |
+          cd iosApp
+          APP_PATH=$(find build -name "iosApp.app" -type d | head -1)
+          if [ -n "$APP_PATH" ]; then
+            mkdir -p Payload
+            cp -r "$APP_PATH" Payload/
+            zip -r Audioly-simulator.ipa Payload
+            echo "IPA created"
+          else
+            echo "No .app found, listing build dir:"
+            find build -name "*.app" -type d
+          fi
+
+      - name: Upload iOS IPA (Simulator)
+        uses: actions/upload-artifact@v4
+        with:
+          name: audioly-ios-simulator
+          path: iosApp/Audioly-simulator.ipa
+          if-no-files-found: warn
