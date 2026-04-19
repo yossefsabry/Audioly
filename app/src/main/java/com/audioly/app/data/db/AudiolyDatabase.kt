@@ -21,7 +21,7 @@ import com.audioly.app.data.db.entities.TrackEntity
         PlaylistTrackEntity::class,
         SubtitleCacheEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class AudiolyDatabase : RoomDatabase() {
@@ -40,6 +40,13 @@ abstract class AudiolyDatabase : RoomDatabase() {
             }
         }
 
+        /** v2 → v3: add lastPositionMs column to tracks for resume playback. */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tracks ADD COLUMN lastPositionMs INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getInstance(context: Context): AudiolyDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -47,7 +54,7 @@ abstract class AudiolyDatabase : RoomDatabase() {
                     AudiolyDatabase::class.java,
                     "audioly.db",
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build().also { INSTANCE = it }
             }
     }

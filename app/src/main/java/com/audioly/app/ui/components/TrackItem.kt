@@ -53,7 +53,7 @@ fun TrackItem(
             if (track.thumbnailUrl.isNotEmpty()) {
                 AsyncImage(
                     model = track.thumbnailUrl,
-                    contentDescription = null,
+                    contentDescription = track.title,
                     modifier = Modifier
                         .size(56.dp)
                         .clip(RoundedCornerShape(12.dp)), // Slightly rounded thumbnail
@@ -69,7 +69,7 @@ fun TrackItem(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Audiotrack,
-                        contentDescription = null,
+                        contentDescription = "Audio track",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }

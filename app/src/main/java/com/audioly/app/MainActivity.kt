@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -27,10 +28,17 @@ import com.audioly.app.ui.navigation.Screen
 import com.audioly.app.ui.navigation.bottomNavItems
 import com.audioly.app.ui.screens.home.HomeScreen
 import com.audioly.app.ui.screens.library.LibraryScreen
+import com.audioly.app.ui.screens.library.PlaylistDetailScreen
 import com.audioly.app.ui.screens.player.PlayerScreen
+import com.audioly.app.ui.screens.search.SearchScreen
 import com.audioly.app.ui.screens.settings.SettingsScreen
 import com.audioly.app.ui.screens.logs.LogViewerScreen
 import com.audioly.app.ui.theme.AudiolyTheme
+import com.audioly.app.ui.viewmodel.AudiolyViewModelFactory
+import com.audioly.app.ui.viewmodel.HomeViewModel
+import com.audioly.app.ui.viewmodel.LibraryViewModel
+import com.audioly.app.ui.viewmodel.PlayerViewModel
+import com.audioly.app.ui.viewmodel.SearchViewModel
 import com.audioly.app.util.AppLogger
 import com.audioly.app.util.UrlValidator
 import com.audioly.app.player.PlaybackController
@@ -56,6 +64,8 @@ class MainActivity : ComponentActivity() {
         val playbackController = PlaybackController(this, app.playerRepository)
         lifecycle.addObserver(playbackController)
 
+        val viewModelFactory = AudiolyViewModelFactory(app)
+
         setContent {
             // Read theme preference
             val prefs by app.preferencesRepository.preferences.collectAsState(
@@ -79,7 +89,11 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-                AudiolyMainContent(initialUrl = sharedUrl.value, app = app)
+                AudiolyMainContent(
+                    initialUrl = sharedUrl.value,
+                    app = app,
+                    viewModelFactory = viewModelFactory,
+                )
             }
         }
     }
@@ -97,7 +111,6 @@ class MainActivity : ComponentActivity() {
     private fun Intent.resolveSharedUrl(): String? {
         if (action != Intent.ACTION_SEND) return null
         val text = getStringExtra(Intent.EXTRA_TEXT) ?: return null
-        // Validate it's actually a YouTube URL before passing it along
         val result = if (UrlValidator.isValid(text)) text else null
         if (result != null) {
             AppLogger.i("MainActivity", "Share intent received: $text")
@@ -118,7 +131,11 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AudiolyMainContent(initialUrl: String?, app: AudiolyApp) {
+private fun AudiolyMainContent(
+    initialUrl: String?,
+    app: AudiolyApp,
+    viewModelFactory: AudiolyViewModelFactory,
+) {
     val navController = rememberNavController()
     val playerState by app.playerRepository.state.collectAsState()
     var pendingSharedUrl by remember(initialUrl) { mutableStateOf(initialUrl) }
@@ -139,7 +156,6 @@ private fun AudiolyMainContent(initialUrl: String?, app: AudiolyApp) {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDest = navBackStackEntry?.destination
             val showMiniPlayer = !playerState.isEmpty && currentDest?.route?.startsWith("player/") != true
-            // Hide bottom bar on player and logs screens
             val showBottomBar = currentDest?.route?.startsWith("player/") != true
                 && currentDest?.route != Screen.Logs.route
             Column {
@@ -186,8 +202,9 @@ private fun AudiolyMainContent(initialUrl: String?, app: AudiolyApp) {
         Box(modifier = Modifier.padding(innerPadding)) {
             NavHost(navController = navController, startDestination = Screen.Home.route) {
                 composable(Screen.Home.route) {
+                    val homeViewModel: HomeViewModel = viewModel(factory = viewModelFactory)
                     HomeScreen(
-                        app = app,
+                        viewModel = homeViewModel,
                         onNavigateToPlayer = { videoId ->
                             navController.navigate(Screen.Player.createRoute(videoId)) {
                                 launchSingleTop = true
@@ -202,8 +219,23 @@ private fun AudiolyMainContent(initialUrl: String?, app: AudiolyApp) {
                     }
                 }
                 composable(Screen.Library.route) {
+                    val libraryViewModel: LibraryViewModel = viewModel(factory = viewModelFactory)
                     LibraryScreen(
-                        app = app,
+                        viewModel = libraryViewModel,
+                        onNavigateToPlayer = { videoId ->
+                            navController.navigate(Screen.Player.createRoute(videoId)) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onNavigateToPlaylist = { playlistId ->
+                            navController.navigate(Screen.PlaylistDetail.createRoute(playlistId))
+                        },
+                    )
+                }
+                composable(Screen.Search.route) {
+                    val searchViewModel: SearchViewModel = viewModel(factory = viewModelFactory)
+                    SearchScreen(
+                        viewModel = searchViewModel,
                         onNavigateToPlayer = { videoId ->
                             navController.navigate(Screen.Player.createRoute(videoId)) {
                                 launchSingleTop = true
@@ -220,9 +252,42 @@ private fun AudiolyMainContent(initialUrl: String?, app: AudiolyApp) {
                 composable(Screen.Logs.route) {
                     LogViewerScreen(onNavigateUp = { navController.popBackStack() })
                 }
+                composable(Screen.PlaylistDetail.route) { backStackEntry ->
+                    val playlistId = backStackEntry.arguments?.getString("playlistId")?.toLongOrNull() ?: return@composable
+                    PlaylistDetailScreen(
+                        playlistId = playlistId,
+                        playlistRepository = app.playlistRepository,
+                        onNavigateUp = { navController.popBackStack() },
+                        onPlayAll = { queueItems, startIndex ->
+                            app.playerRepository.setQueue(queueItems, startIndex)
+                            val item = queueItems.getOrNull(startIndex) ?: return@PlaylistDetailScreen
+                            val audioUrl = item.audioUrl
+                            if (audioUrl != null) {
+                                app.playerRepository.clearSubtitles()
+                                app.playerRepository.load(
+                                    audioUrl = audioUrl,
+                                    videoId = item.videoId,
+                                    title = item.title,
+                                    uploader = item.uploader,
+                                    thumbnailUrl = item.thumbnailUrl,
+                                    durationMs = item.durationSeconds * 1000L,
+                                )
+                            }
+                            navController.navigate(Screen.Player.createRoute(item.videoId)) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onPlayTrack = { track ->
+                            navController.navigate(Screen.Player.createRoute(track.videoId)) {
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
                 composable("player/{videoId}") { _ ->
+                    val playerViewModel: PlayerViewModel = viewModel(factory = viewModelFactory)
                     PlayerScreen(
-                        app = app,
+                        viewModel = playerViewModel,
                         onNavigateUp = { navController.popBackStack() },
                     )
                 }

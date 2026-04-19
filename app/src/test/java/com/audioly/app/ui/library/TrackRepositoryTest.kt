@@ -15,7 +15,7 @@ import org.junit.Test
  * Unit tests for library data layer behavior (history ordering, cached-filter).
  * Exercises TrackRepository with a fake DAO — no Android dependencies.
  */
-class LibraryViewModelTest {
+class TrackRepositoryTest {
 
     private fun track(
         videoId: String,
@@ -105,4 +105,9 @@ private class FakeTrackDao(private val initial: List<TrackEntity>) : TrackDao {
     override suspend fun delete(videoId: String) {
         state.value = state.value.filterNot { it.videoId == videoId }
     }
+
+    override suspend fun setLastPosition(videoId: String, positionMs: Long) {}
+
+    override suspend fun getLastPosition(videoId: String): Long? =
+        state.value.find { it.videoId == videoId }?.lastPositionMs
 }

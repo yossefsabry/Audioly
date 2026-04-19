@@ -25,6 +25,8 @@ import kotlinx.coroutines.flow.update
 class AudioPlayer(
     context: Context,
     private val audioCacheManager: AudioCacheManager,
+    /** Called on the main thread when a track reaches STATE_ENDED. */
+    private val onTrackEnded: (() -> Unit)? = null,
 ) : PlayerHandle {
 
     internal val exoPlayer: ExoPlayer = buildExoPlayer(context, audioCacheManager)
@@ -38,7 +40,13 @@ class AudioPlayer(
     private var released = false
 
     private val listener = object : Player.Listener {
-        override fun onPlaybackStateChanged(playbackState: Int) = updateState()
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            updateState()
+            if (playbackState == Player.STATE_ENDED && !released) {
+                AppLogger.d(TAG, "Track ended, notifying callback")
+                onTrackEnded?.invoke()
+            }
+        }
         override fun onIsPlayingChanged(isPlaying: Boolean) = updateState()
         override fun onIsLoadingChanged(isLoading: Boolean) = updateState()
 

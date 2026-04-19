@@ -6,7 +6,7 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
+import com.audioly.app.network.AppHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
@@ -14,7 +14,6 @@ import org.schabi.newpipe.extractor.exceptions.AgeRestrictedContentException
 import org.schabi.newpipe.extractor.exceptions.ContentNotAvailableException
 import org.schabi.newpipe.extractor.stream.StreamInfo as NpStreamInfo
 import java.io.IOException
-import java.util.concurrent.TimeUnit
 
 /**
  * Extracts audio streams and subtitle tracks from YouTube videos.
@@ -48,10 +47,7 @@ class YouTubeExtractor {
         const val INNERTUBE_URL =
             "https://www.youtube.com/youtubei/v1/player?prettyPrint=false"
 
-        val httpClient: OkHttpClient = OkHttpClient.Builder()
-            .connectTimeout(20, TimeUnit.SECONDS)
-            .readTimeout(20, TimeUnit.SECONDS)
-            .build()
+        val httpClient = AppHttpClient.base
 
         val CLIENTS = listOf(
             // 1. IOS client — returns non-throttled direct audio URLs

@@ -1,43 +1,36 @@
 package com.audioly.app.ui.screens.player
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.FastForward
-import androidx.compose.material.icons.filled.FastRewind
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,35 +39,46 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.audioly.app.AudiolyApp
-import com.audioly.app.data.preferences.UserPreferences
-import com.audioly.app.player.SubtitleCue
-import com.audioly.app.player.SubtitleManager
-import com.audioly.app.player.VttParser
 import com.audioly.app.ui.components.SubtitleView
-import com.audioly.app.util.AppLogger
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import java.io.IOException
-import java.util.concurrent.TimeUnit
+import com.audioly.app.ui.screens.player.components.PlayerArtwork
+import com.audioly.app.ui.screens.player.components.PlayerControls
+import com.audioly.app.ui.screens.player.components.PlayerSeekBar
+import com.audioly.app.ui.screens.player.components.PlayerSpeedSubtitlePickers
+import com.audioly.app.ui.viewmodel.PlayerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
-    app: AudiolyApp,
+    viewModel: PlayerViewModel,
     onNavigateUp: () -> Unit = {},
 ) {
-    val playerRepository = app.playerRepository
-    val state by playerRepository.state.collectAsState()
-    val prefs by app.preferencesRepository.preferences.collectAsState(initial = UserPreferences())
+    val state by viewModel.playerState.collectAsState()
+    val prefs by viewModel.prefs.collectAsState()
+    val subtitleCues by viewModel.subtitleCues.collectAsState()
+    val activeCueIndex by viewModel.activeCueIndex.collectAsState()
+    val subtitleTracks by viewModel.subtitleTracks.collectAsState()
+    val showSubtitles by viewModel.showSubtitles.collectAsState()
+    val hasSubtitleTracks by viewModel.hasSubtitleTracks.collectAsState()
+    val queueItems by viewModel.queue.collectAsState()
+    val queueIdx by viewModel.queueIndex.collectAsState()
+    val repeatMode by viewModel.repeatMode.collectAsState()
+    val shuffleEnabled by viewModel.shuffleEnabled.collectAsState()
+    val hasQueue = queueItems.size > 1
 
-    // Show loading if player is empty (no video loaded yet)
+    var showQueueSheet by remember { mutableStateOf(false) }
+
+    val availableLanguages = subtitleTracks
+        .map { it.languageCode to it.languageName }
+        .distinctBy { it.first }
+
+    // Loading state — no video loaded yet
     if (state.isEmpty) {
         Scaffold(
             topBar = {
@@ -89,9 +93,7 @@ fun PlayerScreen(
             },
         ) { innerPadding ->
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
                 contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -108,104 +110,6 @@ fun PlayerScreen(
         return
     }
 
-    // ─── Subtitle state ───────────────────────────────────────────────────────
-
-    val subtitleTracks by playerRepository.subtitleTracks.collectAsState()
-    val subtitleContentMap by playerRepository.subtitleContent.collectAsState()
-
-    val subtitleManager = remember(state.videoId) { SubtitleManager() }
-    var subtitleCues by remember(state.videoId) { mutableStateOf<List<SubtitleCue>>(emptyList()) }
-
-    // Auto-select subtitle language: prefer saved language, fall back to first track
-    LaunchedEffect(subtitleTracks) {
-        if (subtitleTracks.isNotEmpty() && state.selectedSubtitleLanguage.isEmpty()) {
-            val preferred = prefs.preferredSubtitleLanguage
-            val match = if (preferred.isNotEmpty()) {
-                subtitleTracks.firstOrNull { it.languageCode == preferred }
-            } else null
-            playerRepository.setSubtitleLanguage(
-                match?.languageCode ?: subtitleTracks.first().languageCode
-            )
-        }
-    }
-
-    // Load parsed cues when VTT content or selected language changes
-    LaunchedEffect(state.selectedSubtitleLanguage, subtitleContentMap) {
-        val lang = state.selectedSubtitleLanguage
-        val vtt = subtitleContentMap[lang]
-        if (vtt != null) {
-            val cues = withContext(Dispatchers.Default) {
-                VttParser.parse(vtt)
-            }
-            subtitleCues = cues
-            subtitleManager.load(cues)
-        } else {
-            subtitleCues = emptyList()
-            subtitleManager.load(emptyList())
-        }
-    }
-
-    // Download VTT when user selects a new language
-    LaunchedEffect(state.selectedSubtitleLanguage) {
-        val lang = state.selectedSubtitleLanguage
-        if (lang.isBlank()) return@LaunchedEffect
-        if (subtitleContentMap.containsKey(lang)) return@LaunchedEffect
-
-        val videoId = state.videoId ?: return@LaunchedEffect
-        val track = subtitleTracks.firstOrNull { it.languageCode == lang }
-            ?: return@LaunchedEffect
-
-        // Try disk cache first (IO dispatcher for file access)
-        val cached = try {
-            withContext(Dispatchers.IO) {
-                app.subtitleCacheManager.load(videoId, lang)
-            }
-        } catch (e: Exception) {
-            null
-        }
-
-        if (cached != null) {
-            playerRepository.addSubtitleContent(lang, cached)
-            return@LaunchedEffect
-        }
-
-        // Download from URL
-        val content = downloadVttContent(track.url) ?: return@LaunchedEffect
-
-        // Cache for future use (non-fatal if fails)
-        try {
-            withContext(Dispatchers.IO) {
-                app.subtitleCacheManager.save(
-                    videoId = videoId,
-                    languageCode = lang,
-                    languageName = track.languageName,
-                    format = track.format,
-                    isAutoGenerated = track.isAutoGenerated,
-                    content = content,
-                )
-            }
-        } catch (e: Exception) {
-            AppLogger.w(TAG, "Failed to cache subtitle: ${e.message}")
-        }
-
-        playerRepository.addSubtitleContent(lang, content)
-    }
-
-    val activeCueIndex = subtitleManager.activeIndex(state.positionMs)
-    LaunchedEffect(activeCueIndex) {
-        playerRepository.setSubtitleIndex(activeCueIndex)
-    }
-
-    // ─── Speed / subtitle pickers ─────────────────────────────────────────────
-
-    var showSpeedMenu by remember { mutableStateOf(false) }
-    var showSubtitleMenu by remember { mutableStateOf(false) }
-
-    val speeds = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
-    val availableLanguages = subtitleTracks.map { it.languageCode }.distinct().sorted()
-    val showSubtitles = subtitleCues.isNotEmpty() && state.selectedSubtitleLanguage.isNotEmpty()
-    val subtitlePosition = prefs.subtitlePosition
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -219,6 +123,16 @@ fun PlayerScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (hasQueue) {
+                        IconButton(onClick = { showQueueSheet = true }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.QueueMusic,
+                                contentDescription = "Queue (${queueItems.size})",
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -235,258 +149,210 @@ fun PlayerScreen(
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Artwork
-            if (state.thumbnailUrl.isNotBlank()) {
-                AsyncImage(
-                    model = state.thumbnailUrl,
-                    contentDescription = state.title,
+            // ─── Main content area ───────────────────────────────────────
+            // When subtitles are showing: lyrics replace the artwork (Image 4 design)
+            // When no subtitles: show artwork + title/uploader
+            if (showSubtitles && subtitleCues.isNotEmpty()) {
+                // Lyrics area takes all available space
+                SubtitleView(
+                    cues = subtitleCues,
+                    activeCueIndex = activeCueIndex,
+                    fontSizeSp = prefs.subtitleFontSizeSp.sp,
                     modifier = Modifier
-                        .fillMaxWidth(0.7f)
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(16.dp)),
+                        .fillMaxWidth()
+                        .weight(1f),
+                    onCueTap = { posMs -> viewModel.seekTo(posMs) },
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                // Title + uploader below lyrics (compact)
+                Text(
+                    text = state.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = state.uploader,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                 )
             } else {
-                // Placeholder when no thumbnail
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.7f)
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(16.dp)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                // No subtitles — artwork-focused layout
+                Spacer(Modifier.height(16.dp))
+
+                PlayerArtwork(
+                    thumbnailUrl = state.thumbnailUrl,
+                    title = state.title,
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                // Title + uploader
+                Text(
+                    text = state.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = state.uploader,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+
+                if (state.hasCachedAudio) {
+                    Text(
+                        text = if (state.isFullyCached) "Available offline"
+                        else "Caching audio ${formatCacheProgress(state.cachedBytes, state.cacheContentLength)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
+
+                // Error message
+                if (state.error != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = state.error ?: "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+
+                // Waiting for subtitles indicator (only when a language is selected, not when user turned Off)
+                if (hasSubtitleTracks && !showSubtitles && state.selectedSubtitleLanguage.isNotEmpty()) {
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.MusicNote,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "Loading lyrics...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        )
+                    }
+                }
+
+                Spacer(Modifier.weight(1f))
             }
 
-            Spacer(Modifier.height(16.dp))
+            // ─── Controls section (always at bottom) ─────────────────────
 
-            // Title + uploader
-            Text(
-                text = state.title,
-                style = MaterialTheme.typography.titleLarge,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+            // Playback controls: repeat, prev, play/pause, next, shuffle
+            PlayerControls(
+                isPlaying = state.isPlaying,
+                isBuffering = state.isBuffering,
+                onTogglePlayPause = { viewModel.togglePlayPause() },
+                onSkipBack = { viewModel.skipBack(prefs.skipIntervalSeconds * 1000L) },
+                onSkipForward = { viewModel.skipForward(prefs.skipIntervalSeconds * 1000L) },
+                onSkipToNext = if (hasQueue) ({ viewModel.skipToNext() }) else null,
+                onSkipToPrevious = if (hasQueue) ({ viewModel.skipToPrevious() }) else null,
+                repeatMode = repeatMode,
+                onToggleRepeat = { viewModel.toggleRepeatMode() },
+                shuffleEnabled = shuffleEnabled,
+                onToggleShuffle = { viewModel.toggleShuffle() },
             )
-            Text(
-                text = state.uploader,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+
+            // Seek bar
+            PlayerSeekBar(
+                positionMs = state.positionMs,
+                durationMs = state.durationMs,
+                bufferedFraction = state.bufferedFraction,
+                onSeek = { viewModel.seekTo(it) },
             )
 
-            if (state.hasCachedAudio) {
-                Text(
-                    text = if (state.isFullyCached) {
-                        "Available offline"
-                    } else {
-                        "Caching audio ${formatCacheProgress(state.cachedBytes, state.cacheContentLength)}"
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            // Error message
-            if (state.error != null) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = state.error ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Subtitle — top position
-            if (showSubtitles && subtitlePosition == UserPreferences.SUBTITLE_TOP) {
-                SubtitleView(
-                    cues = subtitleCues,
-                    activeCueIndex = activeCueIndex,
-                    fontSizeSp = prefs.subtitleFontSizeSp.sp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    onCueTap = { posMs -> playerRepository.seekTo(posMs) },
-                )
-            }
-
-            // Progress — use local state for smooth dragging, only seek on release
-            val durationMs = state.durationMs.coerceAtLeast(1L)
-            var isDragging by remember { mutableStateOf(false) }
-            var dragPosition by remember { mutableStateOf(0f) }
-            val displayPosition = if (isDragging) dragPosition else state.positionMs.toFloat()
-
-            // Buffer indicator + seek bar layered
-            Box(modifier = Modifier.fillMaxWidth()) {
-                // Gray buffered progress bar (behind the slider)
-                LinearProgressIndicator(
-                    progress = { state.bufferedFraction.coerceIn(0f, 1f) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .align(Alignment.Center)
-                        .clip(RoundedCornerShape(2.dp)),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.20f),
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                )
-                // Seek slider on top
-                Slider(
-                    value = displayPosition,
-                    onValueChange = { value ->
-                        isDragging = true
-                        dragPosition = value
-                    },
-                    onValueChangeFinished = {
-                        playerRepository.seekTo(dragPosition.toLong())
-                        isDragging = false
-                    },
-                    valueRange = 0f..durationMs.toFloat(),
-                    enabled = state.durationMs > 0L,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0f),
-                    ),
-                )
-            }
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(formatMs(state.positionMs), style = MaterialTheme.typography.bodySmall)
-                Text(formatMs(state.durationMs), style = MaterialTheme.typography.bodySmall)
-            }
-
-            // Subtitle — middle position
-            if (showSubtitles && subtitlePosition == UserPreferences.SUBTITLE_MIDDLE) {
-                SubtitleView(
-                    cues = subtitleCues,
-                    activeCueIndex = activeCueIndex,
-                    fontSizeSp = prefs.subtitleFontSizeSp.sp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    onCueTap = { posMs -> playerRepository.seekTo(posMs) },
-                )
-            }
+            // Speed + subtitle pickers (compact row at bottom)
+            PlayerSpeedSubtitlePickers(
+                currentSpeed = state.playbackSpeed,
+                selectedLanguage = state.selectedSubtitleLanguage,
+                availableLanguages = availableLanguages,
+                onSpeedSelected = { viewModel.setSpeed(it) },
+                onLanguageSelected = { viewModel.setSubtitleLanguage(it) },
+            )
 
             Spacer(Modifier.height(8.dp))
+        }
+    }
 
-            // Playback controls
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 2.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(
-                        onClick = { playerRepository.skipBack(prefs.skipIntervalSeconds * 1000L) },
-                        modifier = Modifier.size(56.dp)
-                    ) {
-                        Icon(Icons.Default.FastRewind, contentDescription = "Skip back ${prefs.skipIntervalSeconds}s", modifier = Modifier.size(32.dp))
-                    }
-                    
-                    if (state.isBuffering) {
-                        CircularProgressIndicator(modifier = Modifier.size(64.dp))
-                    } else {
-                        IconButton(
-                            onClick = { playerRepository.togglePlayPause() },
-                            modifier = Modifier
-                                .size(72.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary),
+    // Queue bottom sheet
+    if (showQueueSheet && hasQueue) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+        ModalBottomSheet(
+            onDismissRequest = { showQueueSheet = false },
+            sheetState = sheetState,
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(
+                    "Up Next",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(bottom = 12.dp),
+                )
+                LazyColumn {
+                    itemsIndexed(queueItems, key = { idx, item -> "${item.videoId}_$idx" }) { idx, item ->
+                        val isCurrent = idx == queueIdx
+                        Surface(
+                            color = if (isCurrent) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.padding(vertical = 4.dp),
                         ) {
-                            Icon(
-                                imageVector = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                contentDescription = if (state.isPlaying) "Pause" else "Play",
-                                modifier = Modifier.size(40.dp),
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                    }
-                    
-                    IconButton(
-                        onClick = { playerRepository.skipForward(prefs.skipIntervalSeconds * 1000L) },
-                        modifier = Modifier.size(56.dp)
-                    ) {
-                        Icon(Icons.Default.FastForward, contentDescription = "Skip forward ${prefs.skipIntervalSeconds}s", modifier = Modifier.size(32.dp))
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            // Speed + subtitle language pickers
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-            ) {
-                Box {
-                    TextButton(onClick = { showSpeedMenu = true }) {
-                        Text(formatSpeed(state.playbackSpeed))
-                    }
-                    DropdownMenu(expanded = showSpeedMenu, onDismissRequest = { showSpeedMenu = false }) {
-                        speeds.forEach { speed ->
-                            DropdownMenuItem(
-                                text = { Text(formatSpeed(speed)) },
-                                onClick = { playerRepository.setSpeed(speed); showSpeedMenu = false },
-                            )
-                        }
-                    }
-                }
-
-                if (availableLanguages.isNotEmpty()) {
-                    Box {
-                        TextButton(onClick = { showSubtitleMenu = true }) {
-                            Text(
-                                text = state.selectedSubtitleLanguage.ifEmpty { "Subtitles" },
-                                maxLines = 1,
-                            )
-                        }
-                        DropdownMenu(expanded = showSubtitleMenu, onDismissRequest = { showSubtitleMenu = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Off") },
-                                onClick = { playerRepository.setSubtitleLanguage(""); showSubtitleMenu = false },
-                            )
-                            availableLanguages.forEach { lang ->
-                                DropdownMenuItem(
-                                    text = { Text(lang) },
-                                    onClick = { playerRepository.setSubtitleLanguage(lang); showSubtitleMenu = false },
-                                )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                if (item.thumbnailUrl.isNotEmpty()) {
+                                    AsyncImage(
+                                        model = item.thumbnailUrl,
+                                        contentDescription = item.title,
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(RoundedCornerShape(8.dp)),
+                                        contentScale = ContentScale.Crop,
+                                    )
+                                    Spacer(Modifier.width(12.dp))
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = item.title,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                                        ),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = item.uploader,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                if (!isCurrent) {
+                                    IconButton(onClick = { viewModel.removeFromQueue(idx) }) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "Remove",
+                                            modifier = Modifier.size(18.dp),
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            // Subtitle — bottom position (default)
-            if (showSubtitles && subtitlePosition == UserPreferences.SUBTITLE_BOTTOM) {
-                SubtitleView(
-                    cues = subtitleCues,
-                    activeCueIndex = activeCueIndex,
-                    fontSizeSp = prefs.subtitleFontSizeSp.sp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    onCueTap = { posMs -> playerRepository.seekTo(posMs) },
-                )
+                Spacer(Modifier.height(32.dp))
             }
         }
     }
@@ -494,64 +360,10 @@ fun PlayerScreen(
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-private const val TAG = "PlayerScreen"
-
-/** Shared OkHttpClient for subtitle downloads — avoids creating per-request instances. */
-private val subtitleHttpClient: OkHttpClient by lazy {
-    OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .build()
-}
-
-/** Downloads VTT subtitle content from a URL. Cancellable via coroutine cancellation. */
-private suspend fun downloadVttContent(url: String): String? = suspendCancellableCoroutine { cont ->
-    val request = okhttp3.Request.Builder().url(url).build()
-    val call = subtitleHttpClient.newCall(request)
-
-    cont.invokeOnCancellation { call.cancel() }
-
-    call.enqueue(object : okhttp3.Callback {
-        override fun onFailure(call: okhttp3.Call, e: IOException) {
-            if (!cont.isCancelled) {
-                AppLogger.w(TAG, "Failed to download subtitle: ${e.message}")
-            }
-            cont.resumeWith(Result.success(null))
-        }
-
-        override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
-            val body = response.use {
-                if (it.isSuccessful) it.body?.string() else null
-            }
-            cont.resumeWith(Result.success(body))
-        }
-    })
-}
-
-private fun formatMs(ms: Long): String {
-    if (ms <= 0L) return "0:00"
-    val totalSec = ms / 1000
-    val hours = totalSec / 3600
-    val minutes = (totalSec % 3600) / 60
-    val seconds = totalSec % 60
-    return if (hours > 0) {
-        "%d:%02d:%02d".format(hours, minutes, seconds)
-    } else {
-        "%d:%02d".format(minutes, seconds)
-    }
-}
-
 private fun formatCacheProgress(cachedBytes: Long, contentLength: Long): String {
     if (cachedBytes <= 0L) return "0%"
     if (contentLength <= 0L) return "${cachedBytes / 1024} KB"
     val percent = ((cachedBytes.toDouble() / contentLength.toDouble()) * 100.0)
-        .toInt()
-        .coerceIn(0, 100)
+        .toInt().coerceIn(0, 100)
     return "$percent%"
-}
-
-private fun formatSpeed(speed: Float): String {
-    // Avoid floating point noise like "1.2500001x"
-    val s = "%.2f".format(speed).trimEnd('0').trimEnd('.')
-    return "${s}x"
 }

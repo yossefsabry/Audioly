@@ -9,6 +9,7 @@ import com.audioly.app.data.repository.PlaylistRepository
 import com.audioly.app.data.repository.TrackRepository
 import com.audioly.app.extraction.OkHttpDownloader
 import com.audioly.app.extraction.YouTubeExtractor
+import com.audioly.app.extraction.YouTubeSearchService
 import com.audioly.app.data.cache.SubtitleCacheManager
 import com.audioly.app.player.PlayerRepository
 import com.audioly.app.util.AppLogger
@@ -45,6 +46,9 @@ class AudiolyApp : Application() {
     lateinit var youTubeExtractor: YouTubeExtractor
         private set
 
+    lateinit var youTubeSearchService: YouTubeSearchService
+        private set
+
     val playerRepository = PlayerRepository()
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
@@ -74,7 +78,10 @@ class AudiolyApp : Application() {
         // Init preferences early so cache size pref is available before AudioCacheManager
         preferencesRepository = UserPreferencesRepository(this)
 
-        // Read cache size preference synchronously — SimpleCache needs it at construction
+        // Read cache size synchronously — SimpleCache needs the value at construction and
+        // can't be resized afterwards. DataStore dispatches file I/O on its own IO thread;
+        // this runBlocking only parks the main thread briefly until the first emission.
+        // Acceptable here because no UI is drawn yet (Application.onCreate).
         val maxCacheBytes = try {
             runBlocking { preferencesRepository.preferences.first().maxCacheBytes }
         } catch (_: Exception) {
@@ -110,6 +117,7 @@ class AudiolyApp : Application() {
         )
 
         youTubeExtractor = YouTubeExtractor()
+        youTubeSearchService = YouTubeSearchService()
 
         AppLogger.i(TAG, "Application initialized")
     }

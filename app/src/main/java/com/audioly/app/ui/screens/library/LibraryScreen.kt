@@ -12,28 +12,34 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import com.audioly.app.AudiolyApp
-import com.audioly.app.data.model.Track
-import com.audioly.app.ui.playback.launchPlaybackFromVideoId
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
+import com.audioly.app.ui.viewmodel.LibraryEvent
+import com.audioly.app.ui.viewmodel.LibraryViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
-    app: AudiolyApp,
+    viewModel: LibraryViewModel,
     onNavigateToPlayer: (String) -> Unit = {},
+    onNavigateToPlaylist: (Long) -> Unit = {},
 ) {
-    var selectedTab by remember { mutableIntStateOf(0) }
+    val selectedTab by viewModel.selectedTab.collectAsState()
     val tabs = listOf("History", "Playlists", "Cached")
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    var isLaunching by remember { mutableIntStateOf(0) }
+
+    // Consume one-shot events
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is LibraryEvent.NavigateToPlayer -> onNavigateToPlayer(event.videoId)
+                is LibraryEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
+            }
+        }
+    }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Library") }) },
@@ -48,46 +54,28 @@ fun LibraryScreen(
                 tabs.forEachIndexed { index, title ->
                     Tab(
                         selected = selectedTab == index,
-                        onClick = { selectedTab = index },
+                        onClick = { viewModel.selectTab(index) },
                         text = { Text(title) },
                     )
                 }
             }
 
-            val onTrackClick: (Track) -> Unit = { track ->
-                scope.launch {
-                    isLaunching += 1
-                    try {
-                        launchPlaybackFromVideoId(
-                            videoId = track.videoId,
-                            app = app,
-                            onNavigateToPlayer = onNavigateToPlayer,
-                            setExtracting = { },
-                            isCurrentlyIdle = isLaunching == 1,
-                            snackbarHostState = snackbarHostState,
-                        )
-                    } finally {
-                        isLaunching = (isLaunching - 1).coerceAtLeast(0)
-                    }
-                }
-            }
-
             when (selectedTab) {
                 0 -> HistoryTab(
-                    trackRepository = app.trackRepository,
-                    cacheRepository = app.cacheRepository,
-                    onTrackClick = onTrackClick,
+                    trackRepository = viewModel.trackRepository,
+                    cacheRepository = viewModel.cacheRepository,
+                    onTrackClick = { track -> viewModel.playTrack(track) },
                     modifier = Modifier.fillMaxSize(),
                 )
                 1 -> PlaylistsTab(
-                    playlistRepository = app.playlistRepository,
-                    onPlaylistClick = { /* TODO: navigate to playlist detail */ },
+                    playlistRepository = viewModel.playlistRepository,
+                    onPlaylistClick = { playlist -> onNavigateToPlaylist(playlist.id) },
                     modifier = Modifier.fillMaxSize(),
                 )
                 2 -> CachedTab(
-                    trackRepository = app.trackRepository,
-                    cacheRepository = app.cacheRepository,
-                    onTrackClick = onTrackClick,
+                    trackRepository = viewModel.trackRepository,
+                    cacheRepository = viewModel.cacheRepository,
+                    onTrackClick = { track -> viewModel.playTrack(track) },
                     modifier = Modifier.fillMaxSize(),
                 )
             }

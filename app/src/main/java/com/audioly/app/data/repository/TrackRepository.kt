@@ -3,6 +3,7 @@ package com.audioly.app.data.repository
 import com.audioly.app.data.db.dao.TrackDao
 import com.audioly.app.data.db.entities.TrackEntity
 import com.audioly.app.data.model.Track
+import com.audioly.app.extraction.SearchResult
 import com.audioly.app.extraction.StreamInfo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -47,6 +48,26 @@ class TrackRepository(private val dao: TrackDao) {
         )
     }
 
+    /**
+     * Ensure a track row exists from search result metadata (no extraction needed).
+     * Preserves existing user data like cache path and play stats.
+     */
+    suspend fun upsertFromSearchResult(result: SearchResult) {
+        dao.upsertPreservingUserData(
+            TrackEntity(
+                videoId = result.videoId,
+                title = result.title,
+                uploader = result.uploader,
+                thumbnailUrl = result.thumbnailUrl,
+                durationSeconds = result.durationSeconds,
+                audioFilePath = null,
+                lastPlayedAt = 0L,
+                playCount = 0,
+                addedAt = System.currentTimeMillis(),
+            ),
+        )
+    }
+
     suspend fun recordPlay(videoId: String) =
         dao.recordPlay(videoId)
 
@@ -55,6 +76,12 @@ class TrackRepository(private val dao: TrackDao) {
 
     suspend fun setAudioStreamUrl(videoId: String, url: String?) =
         dao.setAudioStreamUrl(videoId, url)
+
+    suspend fun saveLastPosition(videoId: String, positionMs: Long) =
+        dao.setLastPosition(videoId, positionMs)
+
+    suspend fun getLastPosition(videoId: String): Long =
+        dao.getLastPosition(videoId) ?: 0L
 
     suspend fun delete(videoId: String) =
         dao.delete(videoId)
@@ -73,4 +100,5 @@ private fun TrackEntity.toDomain() = Track(
     lastPlayedAt = lastPlayedAt,
     playCount = playCount,
     addedAt = addedAt,
+    lastPositionMs = lastPositionMs,
 )

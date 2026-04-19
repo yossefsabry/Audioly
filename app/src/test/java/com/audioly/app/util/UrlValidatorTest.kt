@@ -73,4 +73,24 @@ class UrlValidatorTest {
             UrlValidator.canonicalUrl("dQw4w9WgXcQ")
         )
     }
+
+    // --- Path-based YouTube URLs ---
+    @Test fun `shorts url extracts video id`() {
+        assertEquals("abc123", UrlValidator.extractVideoId("https://www.youtube.com/shorts/abc123"))
+    }
+    @Test fun `embed url extracts video id`() {
+        assertEquals("abc123", UrlValidator.extractVideoId("https://www.youtube.com/embed/abc123"))
+    }
+    @Test fun `v path url extracts video id`() {
+        assertEquals("abc123", UrlValidator.extractVideoId("https://www.youtube.com/v/abc123"))
+    }
+    @Test fun `live url extracts video id`() {
+        assertEquals("abc123", UrlValidator.extractVideoId("https://www.youtube.com/live/abc123"))
+    }
+    @Test fun `shorts url with trailing slash`() {
+        assertEquals("abc123", UrlValidator.extractVideoId("https://www.youtube.com/shorts/abc123/"))
+    }
+    @Test fun `watch url with extra params extracts video id`() {
+        assertEquals("dQw4w9WgXcQ", UrlValidator.extractVideoId("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=30"))
+    }
 }
