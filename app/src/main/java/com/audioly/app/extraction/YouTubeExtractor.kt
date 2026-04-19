@@ -1,7 +1,10 @@
 package com.audioly.app.extraction
 
 import com.audioly.app.util.AppLogger
-import com.audioly.app.util.UrlValidator
+import com.audioly.shared.extraction.ExtractionResult
+import com.audioly.shared.extraction.StreamInfo
+import com.audioly.shared.extraction.SubtitleTrack
+import com.audioly.shared.util.UrlValidator
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

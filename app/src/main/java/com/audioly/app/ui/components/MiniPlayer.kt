@@ -24,7 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.audioly.app.player.PlayerState
+import com.audioly.shared.player.PlayerState
 
 /**
  * Compact player bar displayed at the bottom of the nav scaffold when

@@ -2,6 +2,7 @@ package com.audioly.app.player
 
 import com.audioly.app.network.AppHttpClient
 import com.audioly.app.util.AppLogger
+import com.audioly.shared.player.VttParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody

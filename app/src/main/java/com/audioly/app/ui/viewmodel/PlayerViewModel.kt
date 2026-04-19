@@ -9,13 +9,13 @@ import com.audioly.app.data.preferences.UserPreferences
 import com.audioly.app.data.preferences.UserPreferencesRepository
 import com.audioly.app.network.AppHttpClient
 import com.audioly.app.player.Json3Parser
-import com.audioly.app.player.PlayerRepository
-import com.audioly.app.player.QueueItem
-import com.audioly.app.player.RepeatMode
-import com.audioly.app.player.SubtitleCue
-import com.audioly.app.player.SubtitleManager
+import com.audioly.shared.player.PlayerRepository
+import com.audioly.shared.player.QueueItem
+import com.audioly.shared.player.RepeatMode
+import com.audioly.shared.player.SubtitleCue
+import com.audioly.shared.player.SubtitleManager
 import com.audioly.app.player.SubtitleTranslator
-import com.audioly.app.player.VttParser
+import com.audioly.shared.player.VttParser
 import com.audioly.app.util.AppLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -245,7 +245,7 @@ class PlayerViewModel(
     private suspend fun downloadAndCacheSubtitle(
         videoId: String,
         lang: String,
-        track: com.audioly.app.extraction.SubtitleTrack,
+        track: com.audioly.shared.extraction.SubtitleTrack,
     ) {
         // Deduplicate: skip if already downloading this language
         synchronized(downloadingLangs) {
@@ -301,7 +301,7 @@ class PlayerViewModel(
 
     /** Downloads a regular (non-translated) subtitle track as VTT. */
     private suspend fun downloadRegularSubtitle(
-        track: com.audioly.app.extraction.SubtitleTrack,
+        track: com.audioly.shared.extraction.SubtitleTrack,
     ): String? {
         if (track.url.isBlank()) {
             AppLogger.w(TAG, "Subtitle track has no URL for ${track.languageCode}")
@@ -320,7 +320,7 @@ class PlayerViewModel(
     private suspend fun downloadAutoTranslated(
         videoId: String,
         lang: String,
-        track: com.audioly.app.extraction.SubtitleTrack,
+        track: com.audioly.shared.extraction.SubtitleTrack,
     ): String? {
         // ── Phase 1: YouTube server-side translation (json3 + tlang) ─────────
         if (track.url.isNotBlank()) {
@@ -465,7 +465,7 @@ class PlayerViewModel(
             val url = "https://www.youtube.com/watch?v=${item.videoId}"
             AppLogger.i(TAG, "Queue advance: extracting ${item.videoId}")
             val result = extractor.extract(url)
-            if (result is com.audioly.app.extraction.ExtractionResult.Success) {
+            if (result is com.audioly.shared.extraction.ExtractionResult.Success) {
                 val info = result.streamInfo
                 try {
                     trackRepository?.upsertFromExtraction(info)

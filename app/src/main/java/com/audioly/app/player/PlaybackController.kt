@@ -8,6 +8,7 @@ import android.os.IBinder
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.audioly.app.util.AppLogger
+import com.audioly.shared.player.PlayerRepository
 
 /**
  * Lifecycle-aware helper that binds to [AudioService] and wires it to [PlayerRepository].

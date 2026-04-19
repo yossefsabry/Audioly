@@ -1,6 +1,7 @@
 package com.audioly.app.extraction
 
 import com.audioly.app.util.AppLogger
+import com.audioly.shared.extraction.SearchResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.schabi.newpipe.extractor.InfoItem

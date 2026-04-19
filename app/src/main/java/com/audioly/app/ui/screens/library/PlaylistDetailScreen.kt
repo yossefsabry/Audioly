@@ -38,10 +38,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.audioly.app.data.model.Track
+import com.audioly.shared.data.model.Track
 import com.audioly.app.data.repository.CacheRepository
 import com.audioly.app.data.repository.PlaylistRepository
-import com.audioly.app.player.QueueItem
+import com.audioly.shared.player.QueueItem
 import com.audioly.app.ui.components.TrackItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

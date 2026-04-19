@@ -40,7 +40,7 @@ import com.audioly.app.ui.viewmodel.LibraryViewModel
 import com.audioly.app.ui.viewmodel.PlayerViewModel
 import com.audioly.app.ui.viewmodel.SearchViewModel
 import com.audioly.app.util.AppLogger
-import com.audioly.app.util.UrlValidator
+import com.audioly.shared.util.UrlValidator
 import com.audioly.app.player.PlaybackController
 
 class MainActivity : ComponentActivity() {

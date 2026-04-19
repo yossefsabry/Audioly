@@ -1,5 +1,6 @@
 package com.audioly.app.util
 
+import com.audioly.shared.util.UrlValidator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

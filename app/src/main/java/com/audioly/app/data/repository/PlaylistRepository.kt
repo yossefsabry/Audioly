@@ -3,8 +3,8 @@ package com.audioly.app.data.repository
 import com.audioly.app.data.db.dao.PlaylistDao
 import com.audioly.app.data.db.entities.PlaylistEntity
 import com.audioly.app.data.db.entities.PlaylistTrackEntity
-import com.audioly.app.data.model.Playlist
-import com.audioly.app.data.model.Track
+import com.audioly.shared.data.model.Playlist
+import com.audioly.shared.data.model.Track
 import com.audioly.app.data.db.entities.TrackEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

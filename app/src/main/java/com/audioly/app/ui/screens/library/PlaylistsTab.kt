@@ -29,7 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.audioly.app.data.model.Playlist
+import com.audioly.shared.data.model.Playlist
 import com.audioly.app.data.repository.PlaylistRepository
 import com.audioly.app.ui.components.PlaylistItem
 import kotlinx.coroutines.launch

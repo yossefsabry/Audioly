@@ -1,5 +1,6 @@
 package com.audioly.app.player
 
+import com.audioly.shared.player.PlayerState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

@@ -12,7 +12,7 @@ import com.audioly.app.extraction.OkHttpDownloader
 import com.audioly.app.extraction.YouTubeExtractor
 import com.audioly.app.extraction.YouTubeSearchService
 import com.audioly.app.data.cache.SubtitleCacheManager
-import com.audioly.app.player.PlayerRepository
+import com.audioly.shared.player.PlayerRepository
 import com.audioly.app.util.AppLogger
 import java.io.File
 import kotlinx.coroutines.flow.first

@@ -1,5 +1,8 @@
 package com.audioly.app.player
 
+import com.audioly.shared.player.SubtitleCue
+import com.audioly.shared.player.SubtitleManager
+import com.audioly.shared.player.VttParser
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull

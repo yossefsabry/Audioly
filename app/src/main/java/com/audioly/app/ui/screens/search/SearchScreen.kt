@@ -64,8 +64,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.audioly.app.data.model.Playlist
-import com.audioly.app.extraction.SearchResult
+import com.audioly.shared.data.model.Playlist
+import com.audioly.shared.extraction.SearchResult
 import com.audioly.app.ui.viewmodel.SearchEvent
 import com.audioly.app.ui.viewmodel.SearchViewModel
 

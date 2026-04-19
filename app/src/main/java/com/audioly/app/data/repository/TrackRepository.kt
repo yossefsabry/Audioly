@@ -2,9 +2,9 @@ package com.audioly.app.data.repository
 
 import com.audioly.app.data.db.dao.TrackDao
 import com.audioly.app.data.db.entities.TrackEntity
-import com.audioly.app.data.model.Track
-import com.audioly.app.extraction.SearchResult
-import com.audioly.app.extraction.StreamInfo
+import com.audioly.shared.data.model.Track
+import com.audioly.shared.extraction.SearchResult
+import com.audioly.shared.extraction.StreamInfo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 

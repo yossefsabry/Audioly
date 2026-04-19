@@ -1,6 +1,7 @@
 package com.audioly.app.extraction
 
 import com.audioly.app.util.AppLogger
+import com.audioly.shared.extraction.SubtitleTrack
 import org.json.JSONObject
 import org.schabi.newpipe.extractor.stream.StreamInfo as NewPipeStreamInfo
 

@@ -6,7 +6,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.cache.CacheWriter
 import com.audioly.app.data.preferences.UserPreferencesRepository
-import com.audioly.app.extraction.SubtitleTrack
+import com.audioly.shared.extraction.SubtitleTrack
 import com.audioly.app.network.AppHttpClient
 import com.audioly.app.util.AppLogger
 import java.io.IOException

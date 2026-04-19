@@ -16,7 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.audioly.app.data.model.Playlist
+import com.audioly.shared.data.model.Playlist
 
 @Composable
 fun PlaylistItem(
