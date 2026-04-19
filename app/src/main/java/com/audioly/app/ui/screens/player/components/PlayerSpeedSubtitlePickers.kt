@@ -21,13 +21,18 @@ private val SPEEDS = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
 fun PlayerSpeedSubtitlePickers(
     currentSpeed: Float,
     selectedLanguage: String,
-    availableLanguages: List<String>,
+    availableLanguages: List<Pair<String, String>>,
     onSpeedSelected: (Float) -> Unit,
     onLanguageSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showSpeedMenu by remember { mutableStateOf(false) }
     var showSubtitleMenu by remember { mutableStateOf(false) }
+
+    // Resolve selected language code to display name
+    val selectedDisplayName = availableLanguages
+        .firstOrNull { it.first == selectedLanguage }?.second
+        ?: selectedLanguage
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -51,7 +56,7 @@ fun PlayerSpeedSubtitlePickers(
             Box {
                 TextButton(onClick = { showSubtitleMenu = true }) {
                     Text(
-                        text = selectedLanguage.ifEmpty { "Subtitles" },
+                        text = selectedDisplayName.ifEmpty { "Subtitles" },
                         maxLines = 1,
                     )
                 }
@@ -60,10 +65,10 @@ fun PlayerSpeedSubtitlePickers(
                         text = { Text("Off") },
                         onClick = { onLanguageSelected(""); showSubtitleMenu = false },
                     )
-                    availableLanguages.forEach { lang ->
+                    availableLanguages.forEach { (code, name) ->
                         DropdownMenuItem(
-                            text = { Text(lang) },
-                            onClick = { onLanguageSelected(lang); showSubtitleMenu = false },
+                            text = { Text(name) },
+                            onClick = { onLanguageSelected(code); showSubtitleMenu = false },
                         )
                     }
                 }

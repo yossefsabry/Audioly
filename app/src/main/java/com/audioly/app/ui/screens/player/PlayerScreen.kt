@@ -74,7 +74,9 @@ fun PlayerScreen(
 
     var showQueueSheet by remember { mutableStateOf(false) }
 
-    val availableLanguages = subtitleTracks.map { it.languageCode }.distinct().sorted()
+    val availableLanguages = subtitleTracks
+        .map { it.languageCode to it.languageName }
+        .distinctBy { it.first }
 
     // Loading state — no video loaded yet
     if (state.isEmpty) {
