@@ -40,6 +40,12 @@ interface TrackDao {
     @Query("UPDATE tracks SET audioStreamUrl = :url WHERE videoId = :videoId")
     suspend fun setAudioStreamUrl(videoId: String, url: String?)
 
+    @Query("UPDATE tracks SET lastPositionMs = :positionMs WHERE videoId = :videoId")
+    suspend fun setLastPosition(videoId: String, positionMs: Long)
+
+    @Query("SELECT lastPositionMs FROM tracks WHERE videoId = :videoId")
+    suspend fun getLastPosition(videoId: String): Long?
+
     @Query("DELETE FROM tracks WHERE videoId = :videoId")
     suspend fun delete(videoId: String)
 

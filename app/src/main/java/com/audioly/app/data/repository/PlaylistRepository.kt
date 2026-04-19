@@ -67,4 +67,5 @@ private fun TrackEntity.toDomain() = Track(
     lastPlayedAt = lastPlayedAt,
     playCount = playCount,
     addedAt = addedAt,
+    lastPositionMs = lastPositionMs,
 )

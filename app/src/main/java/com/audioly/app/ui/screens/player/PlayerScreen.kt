@@ -2,30 +2,48 @@ package com.audioly.app.ui.screens.player
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.audioly.app.data.preferences.UserPreferences
 import com.audioly.app.ui.components.SubtitleView
 import com.audioly.app.ui.screens.player.components.PlayerArtwork
@@ -46,6 +64,13 @@ fun PlayerScreen(
     val activeCueIndex by viewModel.activeCueIndex.collectAsState()
     val subtitleTracks by viewModel.subtitleTracks.collectAsState()
     val showSubtitles by viewModel.showSubtitles.collectAsState()
+    val queueItems by viewModel.queue.collectAsState()
+    val queueIdx by viewModel.queueIndex.collectAsState()
+    val repeatMode by viewModel.repeatMode.collectAsState()
+    val shuffleEnabled by viewModel.shuffleEnabled.collectAsState()
+    val hasQueue = queueItems.size > 1
+
+    var showQueueSheet by remember { mutableStateOf(false) }
 
     // Loading state — no video loaded yet
     if (state.isEmpty) {
@@ -95,6 +120,16 @@ fun PlayerScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (hasQueue) {
+                        IconButton(onClick = { showQueueSheet = true }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.QueueMusic,
+                                contentDescription = "Queue (${queueItems.size})",
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -193,6 +228,13 @@ fun PlayerScreen(
                 onTogglePlayPause = { viewModel.togglePlayPause() },
                 onSkipBack = { viewModel.skipBack(prefs.skipIntervalSeconds * 1000L) },
                 onSkipForward = { viewModel.skipForward(prefs.skipIntervalSeconds * 1000L) },
+                hasQueue = hasQueue,
+                onSkipToNext = if (hasQueue) ({ viewModel.skipToNext() }) else null,
+                onSkipToPrevious = if (hasQueue) ({ viewModel.skipToPrevious() }) else null,
+                repeatMode = repeatMode,
+                onToggleRepeat = if (hasQueue) ({ viewModel.toggleRepeatMode() }) else null,
+                shuffleEnabled = shuffleEnabled,
+                onToggleShuffle = if (hasQueue) ({ viewModel.toggleShuffle() }) else null,
             )
 
             Spacer(Modifier.height(8.dp))
@@ -217,6 +259,78 @@ fun PlayerScreen(
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     onCueTap = { posMs -> viewModel.seekTo(posMs) },
                 )
+            }
+        }
+    }
+
+    // Queue bottom sheet
+    if (showQueueSheet && hasQueue) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+        ModalBottomSheet(
+            onDismissRequest = { showQueueSheet = false },
+            sheetState = sheetState,
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(
+                    "Up Next",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(bottom = 12.dp),
+                )
+                LazyColumn {
+                    itemsIndexed(queueItems, key = { idx, item -> "${item.videoId}_$idx" }) { idx, item ->
+                        val isCurrent = idx == queueIdx
+                        Surface(
+                            color = if (isCurrent) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.padding(vertical = 4.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                if (item.thumbnailUrl.isNotEmpty()) {
+                                    AsyncImage(
+                                        model = item.thumbnailUrl,
+                                        contentDescription = item.title,
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(RoundedCornerShape(8.dp)),
+                                        contentScale = ContentScale.Crop,
+                                    )
+                                    Spacer(Modifier.width(12.dp))
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = item.title,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                                        ),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = item.uploader,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                if (!isCurrent) {
+                                    IconButton(onClick = { viewModel.removeFromQueue(idx) }) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "Remove",
+                                            modifier = Modifier.size(18.dp),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(32.dp))
             }
         }
     }

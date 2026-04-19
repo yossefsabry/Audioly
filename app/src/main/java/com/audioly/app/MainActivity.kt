@@ -28,7 +28,9 @@ import com.audioly.app.ui.navigation.Screen
 import com.audioly.app.ui.navigation.bottomNavItems
 import com.audioly.app.ui.screens.home.HomeScreen
 import com.audioly.app.ui.screens.library.LibraryScreen
+import com.audioly.app.ui.screens.library.PlaylistDetailScreen
 import com.audioly.app.ui.screens.player.PlayerScreen
+import com.audioly.app.ui.screens.search.SearchScreen
 import com.audioly.app.ui.screens.settings.SettingsScreen
 import com.audioly.app.ui.screens.logs.LogViewerScreen
 import com.audioly.app.ui.theme.AudiolyTheme
@@ -36,6 +38,7 @@ import com.audioly.app.ui.viewmodel.AudiolyViewModelFactory
 import com.audioly.app.ui.viewmodel.HomeViewModel
 import com.audioly.app.ui.viewmodel.LibraryViewModel
 import com.audioly.app.ui.viewmodel.PlayerViewModel
+import com.audioly.app.ui.viewmodel.SearchViewModel
 import com.audioly.app.util.AppLogger
 import com.audioly.app.util.UrlValidator
 import com.audioly.app.player.PlaybackController
@@ -224,6 +227,20 @@ private fun AudiolyMainContent(
                                 launchSingleTop = true
                             }
                         },
+                        onNavigateToPlaylist = { playlistId ->
+                            navController.navigate(Screen.PlaylistDetail.createRoute(playlistId))
+                        },
+                    )
+                }
+                composable(Screen.Search.route) {
+                    val searchViewModel: SearchViewModel = viewModel(factory = viewModelFactory)
+                    SearchScreen(
+                        viewModel = searchViewModel,
+                        onNavigateToPlayer = { videoId ->
+                            navController.navigate(Screen.Player.createRoute(videoId)) {
+                                launchSingleTop = true
+                            }
+                        },
                     )
                 }
                 composable(Screen.Settings.route) {
@@ -234,6 +251,40 @@ private fun AudiolyMainContent(
                 }
                 composable(Screen.Logs.route) {
                     LogViewerScreen(onNavigateUp = { navController.popBackStack() })
+                }
+                composable(Screen.PlaylistDetail.route) { backStackEntry ->
+                    val playlistId = backStackEntry.arguments?.getString("playlistId")?.toLongOrNull() ?: return@composable
+                    PlaylistDetailScreen(
+                        playlistId = playlistId,
+                        playlistRepository = app.playlistRepository,
+                        cacheRepository = app.cacheRepository,
+                        onNavigateUp = { navController.popBackStack() },
+                        onPlayAll = { queueItems, startIndex ->
+                            app.playerRepository.setQueue(queueItems, startIndex)
+                            val item = queueItems.getOrNull(startIndex) ?: return@PlaylistDetailScreen
+                            val audioUrl = item.audioUrl
+                            if (audioUrl != null) {
+                                app.playerRepository.clearSubtitles()
+                                app.playerRepository.load(
+                                    audioUrl = audioUrl,
+                                    videoId = item.videoId,
+                                    title = item.title,
+                                    uploader = item.uploader,
+                                    thumbnailUrl = item.thumbnailUrl,
+                                    durationMs = item.durationSeconds * 1000L,
+                                )
+                            }
+                            navController.navigate(Screen.Player.createRoute(item.videoId)) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onPlayTrack = { track ->
+                            navController.navigate(Screen.Player.createRoute(track.videoId)) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onRemoveTrack = { /* handled inside screen */ },
+                    )
                 }
                 composable("player/{videoId}") { _ ->
                     val playerViewModel: PlayerViewModel = viewModel(factory = viewModelFactory)

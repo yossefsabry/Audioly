@@ -23,4 +23,6 @@ data class TrackEntity(
     val playCount: Int = 0,
     /** Epoch-millis when row was first inserted. */
     val addedAt: Long = System.currentTimeMillis(),
+    /** Last playback position in milliseconds for resume. */
+    val lastPositionMs: Long = 0L,
 )

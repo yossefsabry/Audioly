@@ -47,6 +47,9 @@ class HomeViewModel(
     private val _isExtracting = MutableStateFlow(false)
     val isExtracting: StateFlow<Boolean> = _isExtracting.asStateFlow()
 
+    private val _lastFailedVideoId = MutableStateFlow<String?>(null)
+    val lastFailedVideoId: StateFlow<String?> = _lastFailedVideoId.asStateFlow()
+
     /** Recent history with cache status pre-computed off main thread. */
     val historyWithCache: StateFlow<List<Pair<Track, Boolean>>> =
         combine(
@@ -88,6 +91,13 @@ class HomeViewModel(
         submitUrl(url)
     }
 
+    /** Retry the last failed extraction. */
+    fun retry() {
+        val videoId = _lastFailedVideoId.value ?: return
+        _lastFailedVideoId.value = null
+        playVideoId(videoId)
+    }
+
     private fun playVideoId(videoId: String) {
         if (_isExtracting.value) {
             AppLogger.w(TAG, "Extraction already in progress, ignoring")
@@ -97,6 +107,7 @@ class HomeViewModel(
             if (tryPlayFromCache(videoId)) return@launch
 
             _isExtracting.value = true
+            _lastFailedVideoId.value = null
             try {
                 val url = "https://www.youtube.com/watch?v=$videoId"
                 AppLogger.i(TAG, "Extracting from videoId: $videoId")
@@ -120,21 +131,29 @@ class HomeViewModel(
                             durationMs = info.durationSeconds * 1000L,
                         )
                         applyDefaultSpeed()
+                        resumeSavedPosition(info.videoId)
                         _events.emit(HomeEvent.NavigateToPlayer(info.videoId))
                     }
                     is ExtractionResult.Failure.InvalidUrl ->
                         _events.emit(HomeEvent.ShowSnackbar("Not a valid YouTube URL"))
-                    is ExtractionResult.Failure.VideoUnavailable ->
+                    is ExtractionResult.Failure.VideoUnavailable -> {
+                        _lastFailedVideoId.value = videoId
                         _events.emit(HomeEvent.ShowSnackbar("Video unavailable"))
+                    }
                     is ExtractionResult.Failure.AgeRestricted ->
                         _events.emit(HomeEvent.ShowSnackbar("Age-restricted video - cannot play"))
-                    is ExtractionResult.Failure.NetworkError ->
+                    is ExtractionResult.Failure.NetworkError -> {
+                        _lastFailedVideoId.value = videoId
                         _events.emit(HomeEvent.ShowSnackbar("Network error. Check your connection."))
-                    is ExtractionResult.Failure.ExtractionFailed ->
+                    }
+                    is ExtractionResult.Failure.ExtractionFailed -> {
+                        _lastFailedVideoId.value = videoId
                         _events.emit(HomeEvent.ShowSnackbar("Could not load this track right now"))
+                    }
                 }
             } catch (e: Exception) {
                 AppLogger.e(TAG, "Unexpected error during extraction", e)
+                _lastFailedVideoId.value = videoId
                 _events.emit(HomeEvent.ShowSnackbar("Something went wrong: ${e.message ?: "unknown error"}"))
             } finally {
                 _isExtracting.value = false
@@ -161,6 +180,7 @@ class HomeViewModel(
                 durationMs = track.durationSeconds * 1000L,
             )
             applyDefaultSpeed()
+            resumeSavedPosition(videoId)
             _events.emit(HomeEvent.NavigateToPlayer(videoId))
             return true
         } catch (e: Exception) {
@@ -175,6 +195,18 @@ class HomeViewModel(
             if (speed != 1.0f) playerRepository.setSpeed(speed)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Failed to apply default speed: ${e.message}")
+        }
+    }
+
+    private suspend fun resumeSavedPosition(videoId: String) {
+        try {
+            val posMs = trackRepository.getLastPosition(videoId)
+            if (posMs > 5_000L) {
+                playerRepository.seekTo(posMs)
+                AppLogger.d(TAG, "Resumed position for $videoId at ${posMs}ms")
+            }
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Failed to resume position: ${e.message}")
         }
     }
 

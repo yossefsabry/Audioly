@@ -9,6 +9,7 @@ import com.audioly.app.data.repository.PlaylistRepository
 import com.audioly.app.data.repository.TrackRepository
 import com.audioly.app.extraction.OkHttpDownloader
 import com.audioly.app.extraction.YouTubeExtractor
+import com.audioly.app.extraction.YouTubeSearchService
 import com.audioly.app.data.cache.SubtitleCacheManager
 import com.audioly.app.player.PlayerRepository
 import com.audioly.app.util.AppLogger
@@ -43,6 +44,9 @@ class AudiolyApp : Application() {
         private set
 
     lateinit var youTubeExtractor: YouTubeExtractor
+        private set
+
+    lateinit var youTubeSearchService: YouTubeSearchService
         private set
 
     val playerRepository = PlayerRepository()
@@ -113,6 +117,7 @@ class AudiolyApp : Application() {
         )
 
         youTubeExtractor = YouTubeExtractor()
+        youTubeSearchService = YouTubeSearchService()
 
         AppLogger.i(TAG, "Application initialized")
     }

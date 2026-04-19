@@ -12,6 +12,7 @@ data class Track(
     val lastPlayedAt: Long,
     val playCount: Int,
     val addedAt: Long,
+    val lastPositionMs: Long = 0L,
 )
 
 /** Domain model for a playlist. */

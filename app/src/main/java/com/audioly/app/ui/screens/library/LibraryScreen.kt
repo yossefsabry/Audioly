@@ -25,6 +25,7 @@ import com.audioly.app.ui.viewmodel.LibraryViewModel
 fun LibraryScreen(
     viewModel: LibraryViewModel,
     onNavigateToPlayer: (String) -> Unit = {},
+    onNavigateToPlaylist: (Long) -> Unit = {},
 ) {
     val selectedTab by viewModel.selectedTab.collectAsState()
     val tabs = listOf("History", "Playlists", "Cached")
@@ -68,7 +69,7 @@ fun LibraryScreen(
                 )
                 1 -> PlaylistsTab(
                     playlistRepository = viewModel.playlistRepository,
-                    onPlaylistClick = { /* TODO: navigate to playlist detail */ },
+                    onPlaylistClick = { playlist -> onNavigateToPlaylist(playlist.id) },
                     modifier = Modifier.fillMaxSize(),
                 )
                 2 -> CachedTab(

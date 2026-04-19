@@ -105,4 +105,9 @@ private class FakeTrackDao(private val initial: List<TrackEntity>) : TrackDao {
     override suspend fun delete(videoId: String) {
         state.value = state.value.filterNot { it.videoId == videoId }
     }
+
+    override suspend fun setLastPosition(videoId: String, positionMs: Long) {}
+
+    override suspend fun getLastPosition(videoId: String): Long? =
+        state.value.find { it.videoId == videoId }?.lastPositionMs
 }

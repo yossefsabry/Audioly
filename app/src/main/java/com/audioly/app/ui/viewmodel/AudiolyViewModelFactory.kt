@@ -27,6 +27,8 @@ class AudiolyViewModelFactory(
             playerRepository = app.playerRepository,
             preferencesRepository = app.preferencesRepository,
             subtitleCacheManager = app.subtitleCacheManager,
+            youTubeExtractor = app.youTubeExtractor,
+            trackRepository = app.trackRepository,
         ) as T
 
         modelClass.isAssignableFrom(LibraryViewModel::class.java) -> LibraryViewModel(
@@ -35,6 +37,17 @@ class AudiolyViewModelFactory(
             playlistRepository = app.playlistRepository,
             playerRepository = app.playerRepository,
             youTubeExtractor = app.youTubeExtractor,
+            preferencesRepository = app.preferencesRepository,
+            subtitleCacheManager = app.subtitleCacheManager,
+        ) as T
+
+        modelClass.isAssignableFrom(SearchViewModel::class.java) -> SearchViewModel(
+            searchService = app.youTubeSearchService,
+            youTubeExtractor = app.youTubeExtractor,
+            playerRepository = app.playerRepository,
+            trackRepository = app.trackRepository,
+            cacheRepository = app.cacheRepository,
+            playlistRepository = app.playlistRepository,
             preferencesRepository = app.preferencesRepository,
             subtitleCacheManager = app.subtitleCacheManager,
         ) as T

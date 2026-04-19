@@ -52,7 +52,11 @@ class AudioService : MediaSessionService() {
         super.onCreate()
         AppLogger.i(TAG, "AudioService created")
         val app = application as AudiolyApp
-        player = AudioPlayer(this, app.audioCacheManager)
+        player = AudioPlayer(
+            context = this,
+            audioCacheManager = app.audioCacheManager,
+            onTrackEnded = { app.playerRepository.onTrackCompleted() },
+        )
         mediaSession = MediaSession.Builder(this, player.exoPlayer)
             .setSessionActivity(buildSessionActivity())
             .build()

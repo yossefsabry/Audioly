@@ -60,7 +60,7 @@ fun MiniPlayer(
                 if (state.thumbnailUrl.isNotBlank()) {
                     AsyncImage(
                         model = state.thumbnailUrl,
-                        contentDescription = null,
+                        contentDescription = state.title,
                         modifier = Modifier
                             .size(40.dp)
                             .clip(RoundedCornerShape(4.dp)),
@@ -68,7 +68,7 @@ fun MiniPlayer(
                 } else {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
-                        contentDescription = null,
+                        contentDescription = "Now playing",
                         modifier = Modifier.size(40.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
