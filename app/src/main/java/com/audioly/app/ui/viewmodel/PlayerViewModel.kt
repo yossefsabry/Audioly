@@ -186,6 +186,8 @@ class PlayerViewModel(
         // Download VTT when selected language changes OR when tracks get updated URLs.
         // Combines both (videoId, lang) and subtitleTracks so that when fresh tracks
         // replace cached-with-empty-URL tracks, the download is re-attempted.
+        // NOTE: Even tracks with empty URLs are passed through — downloadAndCacheSubtitle
+        // checks disk cache first, so cached content loads immediately without a URL.
         viewModelScope.launch {
             combine(
                 playerState.map { state -> state.videoId to state.selectedSubtitleLanguage }.distinctUntilChanged(),
@@ -198,8 +200,6 @@ class PlayerViewModel(
 
                 val track = tracks.firstOrNull { it.languageCode == lang }
                     ?: return@collectLatest
-                // Skip if track has no URL and isn't auto-translated (e.g. from cache with empty URL)
-                if (track.url.isBlank() && !track.isAutoTranslated) return@collectLatest
 
                 downloadAndCacheSubtitle(videoId, lang, track)
             }
