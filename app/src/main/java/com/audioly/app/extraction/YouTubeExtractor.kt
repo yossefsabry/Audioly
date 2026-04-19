@@ -77,6 +77,15 @@ class YouTubeExtractor {
                 userAgent = "Mozilla/5.0 (SMART-TV; LINUX; Tizen 5.0) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/2.1 Chrome/56.0.2924.0 TV Safari/537.36",
             ),
         )
+
+        // WEB client — most reliable for returning caption/subtitle tracks (ASR + manual).
+        // Not used for audio streams (often cipher-protected) but used as dedicated caption source.
+        val WEB_CLIENT = InnerTubeClient(
+            clientName = "WEB",
+            clientNameId = "1",
+            clientVersion = "2.20241001.00.00",
+            userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+        )
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -94,7 +103,7 @@ class YouTubeExtractor {
             val result = extractWithNewPipe(videoId)
             if (result != null) {
                 AppLogger.i(TAG, "NewPipe extraction succeeded for $videoId")
-                return@withContext result
+                return@withContext augmentWithCaptions(result, videoId)
             }
         } catch (e: AgeRestrictedContentException) {
             AppLogger.w(TAG, "NewPipe: age-restricted for $videoId")
@@ -123,7 +132,7 @@ class YouTubeExtractor {
                 val result = tryClient(videoId, client)
                 if (result != null) {
                     AppLogger.i(TAG, "InnerTube ${client.clientName} succeeded for $videoId")
-                    return@withContext result
+                    return@withContext augmentWithCaptions(result, videoId)
                 }
             } catch (e: CancellationException) {
                 throw e // Never swallow coroutine cancellation
@@ -141,6 +150,100 @@ class YouTubeExtractor {
         return@withContext ExtractionResult.Failure.ExtractionFailed(
             Exception("All extraction methods failed for $videoId"),
         )
+    }
+
+    // ── Dedicated subtitle fetch ────────────────────────────────────────────────
+
+    /**
+     * Public API: fetches only subtitle/caption tracks for a given video ID.
+     *
+     * Tries NewPipe first (most reliable for ASR captions), then falls back
+     * to InnerTube clients. Used when playing from cache without cached subtitles.
+     */
+    suspend fun fetchSubtitles(videoId: String): List<SubtitleTrack> = withContext(Dispatchers.IO) {
+        AppLogger.i(TAG, "fetchSubtitles: fetching tracks for $videoId")
+
+        // 1. Try NewPipe — most reliable for ASR + manual subtitles
+        try {
+            val url = UrlValidator.canonicalUrl(videoId)
+            val npInfo = NpStreamInfo.getInfo(url)
+            val tracks = SubtitleExtractor.extract(npInfo)
+            if (tracks.isNotEmpty()) {
+                AppLogger.i(TAG, "fetchSubtitles: NewPipe returned ${tracks.size} tracks for $videoId")
+                return@withContext tracks
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            AppLogger.w(TAG, "fetchSubtitles: NewPipe failed for $videoId: ${e.message}")
+        }
+
+        // 2. Fall back to InnerTube clients
+        for (client in CLIENTS + WEB_CLIENT) {
+            val tracks = fetchCaptionsFromClient(videoId, client)
+            if (tracks.isNotEmpty()) return@withContext tracks
+        }
+
+        AppLogger.i(TAG, "fetchSubtitles: no tracks found for $videoId")
+        emptyList()
+    }
+
+    /**
+     * Fetches subtitle/caption tracks using a specific InnerTube client.
+     */
+    private fun fetchCaptionsFromClient(videoId: String, client: InnerTubeClient): List<SubtitleTrack> {
+        try {
+            val requestBody = buildRequestBody(videoId, client)
+            val request = Request.Builder()
+                .url(INNERTUBE_URL)
+                .post(requestBody.toRequestBody("application/json".toMediaType()))
+                .header("Content-Type", "application/json")
+                .header("User-Agent", client.userAgent)
+                .header("X-Youtube-Client-Name", client.clientNameId)
+                .header("X-Youtube-Client-Version", client.clientVersion)
+                .header("Accept-Language", "en-US,en;q=0.9")
+                .build()
+
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    AppLogger.w(TAG, "${client.clientName} caption fetch HTTP ${response.code} for $videoId")
+                    return emptyList()
+                }
+                val bodyStr = response.body?.string() ?: return emptyList()
+                val json = JSONObject(bodyStr)
+                val tracks = SubtitleExtractor.extractFromInnerTubeJson(json)
+                if (tracks.isNotEmpty()) {
+                    AppLogger.i(TAG, "${client.clientName} caption fetch for $videoId — got ${tracks.size} tracks")
+                }
+                return tracks
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            AppLogger.w(TAG, "${client.clientName} caption fetch failed for $videoId: ${e.message}")
+            return emptyList()
+        }
+    }
+
+    /**
+     * If extraction succeeded but returned 0 subtitle tracks, try fetching
+     * captions separately using multiple InnerTube clients.
+     */
+    private fun augmentWithCaptions(result: ExtractionResult, videoId: String): ExtractionResult {
+        if (result !is ExtractionResult.Success) return result
+        if (result.streamInfo.subtitleTracks.isNotEmpty()) return result
+
+        AppLogger.i(TAG, "No subtitles from primary extraction — trying dedicated caption fetch")
+        for (client in CLIENTS + WEB_CLIENT) {
+            val captions = fetchCaptionsFromClient(videoId, client)
+            if (captions.isNotEmpty()) {
+                return ExtractionResult.Success(
+                    result.streamInfo.copy(subtitleTracks = captions)
+                )
+            }
+        }
+        AppLogger.i(TAG, "All caption fetch methods returned no tracks for $videoId")
+        return result
     }
 
     // ── NewPipe extraction (primary) ──────────────────────────────────────────

@@ -224,6 +224,28 @@ class SearchViewModel(
                 })
             }
 
+            // Always fetch full subtitle track list from YouTube in background.
+            // Cached subtitles may only include a subset (e.g. Korean but not English).
+            viewModelScope.launch {
+                try {
+                    val tracks = youTubeExtractor.fetchSubtitles(videoId)
+                    if (tracks.isNotEmpty()) {
+                        val hadEnglish = playerRepository.subtitleTracks.value
+                            .any { it.languageCode.startsWith("en") }
+                        playerRepository.setSubtitleTracks(tracks)
+                        if (!hadEnglish) {
+                            val englishTrack = tracks.firstOrNull { it.languageCode.startsWith("en") }
+                            if (englishTrack != null) {
+                                playerRepository.setSubtitleLanguage(englishTrack.languageCode)
+                            }
+                        }
+                        AppLogger.i(TAG, "Fetched ${tracks.size} subtitle tracks for cached video $videoId")
+                    }
+                } catch (e: Exception) {
+                    AppLogger.w(TAG, "Background subtitle fetch failed: ${e.message}")
+                }
+            }
+
             playerRepository.load(
                 audioUrl = audioUrl,
                 videoId = videoId,

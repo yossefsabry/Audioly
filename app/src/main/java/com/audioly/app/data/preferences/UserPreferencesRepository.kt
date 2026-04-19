@@ -22,7 +22,7 @@ class UserPreferencesRepository(private val context: Context) {
         UserPreferences(
             themeMode = prefs[KEY_THEME_MODE] ?: UserPreferences.THEME_SYSTEM,
             playbackSpeed = prefs[KEY_PLAYBACK_SPEED] ?: 1.0f,
-            preferredSubtitleLanguage = prefs[KEY_SUBTITLE_LANGUAGE] ?: "",
+            preferredSubtitleLanguage = prefs[KEY_SUBTITLE_LANGUAGE] ?: "en",
             subtitleFontSizeSp = prefs[KEY_SUBTITLE_FONT_SIZE] ?: 16f,
             subtitlePosition = prefs[KEY_SUBTITLE_POSITION] ?: UserPreferences.SUBTITLE_BOTTOM,
             maxCacheBytes = prefs[KEY_MAX_CACHE_BYTES] ?: UserPreferences.DEFAULT_CACHE_BYTES,
