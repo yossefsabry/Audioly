@@ -1,0 +1,59 @@
+CREATE TABLE tracks (
+    videoId TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    uploader TEXT NOT NULL,
+    thumbnailUrl TEXT NOT NULL,
+    durationSeconds INTEGER NOT NULL,
+    audioFilePath TEXT,
+    audioStreamUrl TEXT,
+    lastPlayedAt INTEGER NOT NULL DEFAULT 0,
+    playCount INTEGER NOT NULL DEFAULT 0,
+    addedAt INTEGER NOT NULL,
+    lastPositionMs INTEGER NOT NULL DEFAULT 0
+);
+
+selectAll:
+SELECT * FROM tracks;
+
+selectById:
+SELECT * FROM tracks WHERE videoId = ?;
+
+insert:
+INSERT OR REPLACE INTO tracks (videoId, title, uploader, thumbnailUrl, durationSeconds, audioFilePath, audioStreamUrl, lastPlayedAt, playCount, addedAt, lastPositionMs)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+update:
+UPDATE tracks
+SET title = ?, uploader = ?, thumbnailUrl = ?, durationSeconds = ?, audioFilePath = ?,
+    audioStreamUrl = ?, lastPlayedAt = ?, playCount = ?, addedAt = ?, lastPositionMs = ?
+WHERE videoId = ?;
+
+delete:
+DELETE FROM tracks WHERE videoId = ?;
+
+selectRecent:
+SELECT * FROM tracks WHERE lastPlayedAt > 0 ORDER BY lastPlayedAt DESC LIMIT :limit;
+
+selectMostPlayed:
+SELECT * FROM tracks ORDER BY playCount DESC LIMIT :limit;
+
+selectHistory:
+SELECT * FROM tracks WHERE lastPlayedAt > 0 ORDER BY lastPlayedAt DESC;
+
+selectCached:
+SELECT * FROM tracks WHERE audioFilePath IS NOT NULL;
+
+setAudioFilePath:
+UPDATE tracks SET audioFilePath = ? WHERE videoId = ?;
+
+setAudioStreamUrl:
+UPDATE tracks SET audioStreamUrl = ? WHERE videoId = ?;
+
+recordPlay:
+UPDATE tracks SET lastPlayedAt = ?, playCount = playCount + 1 WHERE videoId = ?;
+
+setLastPosition:
+UPDATE tracks SET lastPositionMs = ? WHERE videoId = ?;
+
+getLastPosition:
+SELECT lastPositionMs FROM tracks WHERE videoId = ?;

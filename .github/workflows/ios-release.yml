@@ -50,6 +50,8 @@ jobs:
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
 
       - name: Build & Archive iOS App
+        env:
+          CODE_SIGNING_ALLOWED: ${{ secrets.IOS_CERTIFICATE_P12_B64 != '' && 'YES' || 'NO' }}
         run: |
           cd iosApp
           xcodebuild archive \
@@ -60,7 +62,7 @@ jobs:
             -sdk iphoneos \
             SKIP_INSTALL=NO \
             BUILD_LIBRARIES_FOR_DISTRIBUTION=YES \
-            CODE_SIGNING_ALLOWED=${{ secrets.IOS_CERTIFICATE_P12_B64 != '' && 'YES' || 'NO' }}
+            CODE_SIGNING_ALLOWED=$CODE_SIGNING_ALLOWED
 
       - name: Export IPA
         if: env.IOS_CERTIFICATE_P12_B64 != ''
@@ -87,9 +89,10 @@ jobs:
           APP_STORE_ISSUER_ID: ${{ secrets.APP_STORE_ISSUER_ID }}
           APP_STORE_KEY_ID: ${{ secrets.APP_STORE_KEY_ID }}
         run: |
-          # Decode API key
-          API_KEY_PATH=$RUNNER_TEMP/AuthKey.p8
-          echo -n "$APP_STORE_API_KEY_BASE64" | base64 --decode -o $API_KEY_PATH
+          # altool expects the API key at ~/.appstoreconnect/private_keys/AuthKey_{KEY_ID}.p8
+          mkdir -p ~/.appstoreconnect/private_keys/
+          echo -n "$APP_STORE_API_KEY_BASE64" | base64 --decode \
+            -o ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_KEY_ID}.p8
 
           xcrun altool --upload-app \
             --type ios \

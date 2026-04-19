@@ -22,7 +22,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.audioly.app.data.preferences.UserPreferences
+import com.audioly.shared.data.preferences.UserPreferences
 import com.audioly.app.ui.components.MiniPlayer
 import com.audioly.app.ui.navigation.Screen
 import com.audioly.app.ui.navigation.bottomNavItems

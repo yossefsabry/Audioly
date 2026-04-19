@@ -1,0 +1,30 @@
+CREATE TABLE playlist_tracks (
+    playlistId INTEGER NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
+    videoId TEXT NOT NULL REFERENCES tracks(videoId) ON DELETE CASCADE,
+    position INTEGER NOT NULL,
+    addedAt INTEGER NOT NULL,
+    PRIMARY KEY (playlistId, videoId)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pt_playlist ON playlist_tracks(playlistId);
+CREATE INDEX IF NOT EXISTS idx_pt_video ON playlist_tracks(videoId);
+
+selectTracksForPlaylist:
+SELECT t.*
+FROM tracks t
+INNER JOIN playlist_tracks pt ON t.videoId = pt.videoId
+WHERE pt.playlistId = ?
+ORDER BY pt.position ASC;
+
+insert:
+INSERT OR IGNORE INTO playlist_tracks (playlistId, videoId, position, addedAt)
+VALUES (?, ?, ?, ?);
+
+delete:
+DELETE FROM playlist_tracks WHERE playlistId = ? AND videoId = ?;
+
+maxPosition:
+SELECT COALESCE(MAX(position), -1) FROM playlist_tracks WHERE playlistId = ?;
+
+updatePosition:
+UPDATE playlist_tracks SET position = ? WHERE playlistId = ? AND videoId = ?;

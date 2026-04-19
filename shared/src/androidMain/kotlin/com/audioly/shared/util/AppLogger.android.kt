@@ -18,4 +18,8 @@ actual object AppLogger {
     actual fun e(tag: String, message: String, throwable: Throwable?) {
         Log.e(tag, message, throwable)
     }
+
+    actual fun fatal(tag: String, message: String, throwable: Throwable?) {
+        Log.e(tag, "FATAL: $message", throwable)
+    }
 }

@@ -9,16 +9,18 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.audioly.shared.data.preferences.UserPreferences
+import com.audioly.shared.data.preferences.UserPreferencesService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_prefs")
 
-class UserPreferencesRepository(private val context: Context) {
+class UserPreferencesRepository(private val context: Context) : UserPreferencesService {
 
     private val store = context.dataStore
 
-    val preferences: Flow<UserPreferences> = store.data.map { prefs ->
+    override val preferences: Flow<UserPreferences> = store.data.map { prefs ->
         UserPreferences(
             themeMode = prefs[KEY_THEME_MODE] ?: UserPreferences.THEME_DARK,
             playbackSpeed = prefs[KEY_PLAYBACK_SPEED] ?: 1.0f,
@@ -30,26 +32,33 @@ class UserPreferencesRepository(private val context: Context) {
         )
     }
 
-    suspend fun setThemeMode(mode: String) =
+    override suspend fun setThemeMode(mode: String) {
         store.edit { it[KEY_THEME_MODE] = mode }
+    }
 
-    suspend fun setPlaybackSpeed(speed: Float) =
+    override suspend fun setPlaybackSpeed(speed: Float) {
         store.edit { it[KEY_PLAYBACK_SPEED] = speed }
+    }
 
-    suspend fun setPreferredSubtitleLanguage(lang: String) =
+    override suspend fun setPreferredSubtitleLanguage(lang: String) {
         store.edit { it[KEY_SUBTITLE_LANGUAGE] = lang }
+    }
 
-    suspend fun setSubtitleFontSize(sizeSp: Float) =
+    override suspend fun setSubtitleFontSize(sizeSp: Float) {
         store.edit { it[KEY_SUBTITLE_FONT_SIZE] = sizeSp }
+    }
 
-    suspend fun setSubtitlePosition(position: String) =
+    override suspend fun setSubtitlePosition(position: String) {
         store.edit { it[KEY_SUBTITLE_POSITION] = position }
+    }
 
-    suspend fun setMaxCacheBytes(bytes: Long) =
+    override suspend fun setMaxCacheBytes(bytes: Long) {
         store.edit { it[KEY_MAX_CACHE_BYTES] = bytes }
+    }
 
-    suspend fun setSkipInterval(seconds: Int) =
+    override suspend fun setSkipInterval(seconds: Int) {
         store.edit { it[KEY_SKIP_INTERVAL] = seconds }
+    }
 
     private companion object {
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")

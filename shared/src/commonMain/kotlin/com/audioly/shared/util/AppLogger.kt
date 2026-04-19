@@ -9,4 +9,5 @@ expect object AppLogger {
     fun i(tag: String, message: String)
     fun w(tag: String, message: String, throwable: Throwable? = null)
     fun e(tag: String, message: String, throwable: Throwable? = null)
+    fun fatal(tag: String, message: String, throwable: Throwable? = null)
 }

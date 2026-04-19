@@ -14,8 +14,8 @@ class IosUserPreferencesService : UserPreferencesService {
     private val _preferences = MutableStateFlow(loadPreferences())
     override val preferences: Flow<UserPreferences> = _preferences
 
-    override suspend fun setTheme(mode: ThemeMode) {
-        defaults.setObject(mode.name, forKey = KEY_THEME)
+    override suspend fun setThemeMode(mode: String) {
+        defaults.setObject(mode, forKey = KEY_THEME_MODE)
         updateFlow()
     }
 
@@ -24,23 +24,23 @@ class IosUserPreferencesService : UserPreferencesService {
         updateFlow()
     }
 
-    override suspend fun setSubtitleLanguage(language: String) {
-        defaults.setObject(language, forKey = KEY_SUBTITLE_LANG)
+    override suspend fun setPreferredSubtitleLanguage(lang: String) {
+        defaults.setObject(lang, forKey = KEY_SUBTITLE_LANG)
         updateFlow()
     }
 
-    override suspend fun setSubtitleFontSize(size: Float) {
-        defaults.setFloat(size, forKey = KEY_SUBTITLE_FONT)
+    override suspend fun setSubtitleFontSize(sizeSp: Float) {
+        defaults.setFloat(sizeSp, forKey = KEY_SUBTITLE_FONT)
         updateFlow()
     }
 
-    override suspend fun setSubtitlePosition(position: Float) {
-        defaults.setFloat(position, forKey = KEY_SUBTITLE_POS)
+    override suspend fun setSubtitlePosition(position: String) {
+        defaults.setObject(position, forKey = KEY_SUBTITLE_POS)
         updateFlow()
     }
 
-    override suspend fun setCacheSizeMb(sizeMb: Long) {
-        defaults.setInteger(sizeMb, forKey = KEY_CACHE_SIZE)
+    override suspend fun setMaxCacheBytes(bytes: Long) {
+        defaults.setInteger(bytes, forKey = KEY_MAX_CACHE_BYTES)
         updateFlow()
     }
 
@@ -54,36 +54,38 @@ class IosUserPreferencesService : UserPreferencesService {
     }
 
     private fun loadPreferences(): UserPreferences {
-        val themeName = defaults.stringForKey(KEY_THEME)
-        val theme = themeName?.let {
-            try { ThemeMode.valueOf(it) } catch (_: Exception) { ThemeMode.SYSTEM }
-        } ?: ThemeMode.SYSTEM
+        val themeMode = defaults.stringForKey(KEY_THEME_MODE)
+            ?.takeIf { it in listOf(UserPreferences.THEME_LIGHT, UserPreferences.THEME_DARK, UserPreferences.THEME_SYSTEM) }
+            ?: UserPreferences.THEME_DARK
 
         val speed = defaults.floatForKey(KEY_PLAYBACK_SPEED).takeIf { it > 0f } ?: 1.0f
         val subtitleLang = defaults.stringForKey(KEY_SUBTITLE_LANG) ?: ""
         val subtitleFont = defaults.floatForKey(KEY_SUBTITLE_FONT).takeIf { it > 0f } ?: 16f
-        val subtitlePos = defaults.floatForKey(KEY_SUBTITLE_POS).takeIf { it > 0f } ?: 0.85f
-        val cacheSize = defaults.integerForKey(KEY_CACHE_SIZE).takeIf { it > 0 } ?: 512L
+        val subtitlePos = defaults.stringForKey(KEY_SUBTITLE_POS)
+            ?.takeIf { it in listOf(UserPreferences.SUBTITLE_BOTTOM, UserPreferences.SUBTITLE_MIDDLE, UserPreferences.SUBTITLE_TOP) }
+            ?: UserPreferences.SUBTITLE_BOTTOM
+        val maxCache = defaults.integerForKey(KEY_MAX_CACHE_BYTES).takeIf { it > 0 }
+            ?: UserPreferences.DEFAULT_CACHE_BYTES
         val skipInterval = defaults.integerForKey(KEY_SKIP_INTERVAL).toInt().takeIf { it > 0 } ?: 15
 
         return UserPreferences(
-            theme = theme,
+            themeMode = themeMode,
             playbackSpeed = speed,
-            subtitleLanguage = subtitleLang,
-            subtitleFontSize = subtitleFont,
+            preferredSubtitleLanguage = subtitleLang,
+            subtitleFontSizeSp = subtitleFont,
             subtitlePosition = subtitlePos,
-            cacheSizeMb = cacheSize,
+            maxCacheBytes = maxCache,
             skipIntervalSeconds = skipInterval,
         )
     }
 
     private companion object {
-        const val KEY_THEME = "audioly_theme"
+        const val KEY_THEME_MODE = "audioly_theme_mode"
         const val KEY_PLAYBACK_SPEED = "audioly_playback_speed"
         const val KEY_SUBTITLE_LANG = "audioly_subtitle_lang"
         const val KEY_SUBTITLE_FONT = "audioly_subtitle_font"
         const val KEY_SUBTITLE_POS = "audioly_subtitle_pos"
-        const val KEY_CACHE_SIZE = "audioly_cache_size"
+        const val KEY_MAX_CACHE_BYTES = "audioly_max_cache_bytes"
         const val KEY_SKIP_INTERVAL = "audioly_skip_interval"
     }
 }

@@ -18,4 +18,8 @@ actual object AppLogger {
     actual fun e(tag: String, message: String, throwable: Throwable?) {
         NSLog("E/$tag: $message${throwable?.let { " | ${it.message}" } ?: ""}")
     }
+
+    actual fun fatal(tag: String, message: String, throwable: Throwable?) {
+        NSLog("FATAL/$tag: $message${throwable?.let { " | ${it.message}" } ?: ""}")
+    }
 }

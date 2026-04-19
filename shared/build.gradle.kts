@@ -3,6 +3,7 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.compose")
     kotlin("plugin.serialization")
+    id("app.cash.sqldelight")
 }
 
 kotlin {
@@ -47,6 +48,9 @@ kotlin {
 
                 // DateTime
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
+
+                // SQLDelight coroutines extensions
+                implementation("app.cash.sqldelight:coroutines-extensions:2.0.1")
             }
         }
 
@@ -76,6 +80,9 @@ kotlin {
 
                 // Coil for image loading
                 implementation("io.coil-kt:coil-compose:2.6.0")
+
+                // SQLDelight Android driver
+                implementation("app.cash.sqldelight:android-driver:2.0.1")
             }
         }
 
@@ -91,6 +98,9 @@ kotlin {
             dependencies {
                 // iOS Ktor engine
                 implementation("io.ktor:ktor-client-darwin:2.3.8")
+
+                // SQLDelight native driver
+                implementation("app.cash.sqldelight:native-driver:2.0.1")
             }
         }
 
@@ -116,5 +126,13 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+sqldelight {
+    databases {
+        create("AudiolyDb") {
+            packageName.set("com.audioly.shared.db")
+        }
     }
 }

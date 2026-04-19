@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.audioly.app.data.cache.DownloadState
 import com.audioly.app.data.cache.SubtitleCacheManager
 import com.audioly.app.data.cache.TrackDownloadManager
-import com.audioly.app.data.preferences.UserPreferences
+import com.audioly.shared.data.preferences.UserPreferences
 import com.audioly.app.data.preferences.UserPreferencesRepository
 import com.audioly.app.network.AppHttpClient
 import com.audioly.app.player.Json3Parser

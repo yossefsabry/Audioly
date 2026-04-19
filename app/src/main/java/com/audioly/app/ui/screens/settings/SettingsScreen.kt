@@ -33,7 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.audioly.app.AudiolyApp
-import com.audioly.app.data.preferences.UserPreferences
+import com.audioly.shared.data.preferences.UserPreferences
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
