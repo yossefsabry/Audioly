@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -61,6 +63,12 @@ class PlayerViewModel(
     private val _activeCueIndex = MutableStateFlow(-1)
     val activeCueIndex: StateFlow<Int> = _activeCueIndex.asStateFlow()
 
+    /**
+     * Set to true when the user explicitly selects "Off" for subtitles.
+     * Cleared on video change so auto-select fires for the new video.
+     */
+    private var userDisabledSubtitles = false
+
     val showSubtitles: StateFlow<Boolean> = combine(
         _subtitleCues,
         playerState,
@@ -68,18 +76,31 @@ class PlayerViewModel(
         cues.isNotEmpty() && state.selectedSubtitleLanguage.isNotEmpty()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
+    /** True when subtitles are available (tracks extracted) even if not yet downloaded. */
+    val hasSubtitleTracks: StateFlow<Boolean> = subtitleTracks
+        .map { it.isNotEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
     init {
-        // Watch for video changes — reset subtitle manager
+        // Watch for video changes — reset subtitle manager and user preference
         viewModelScope.launch {
-            playerState.collectLatest { state ->
-                val videoId = state.videoId
-                if (videoId != null && videoId != currentVideoId) {
-                    currentVideoId = videoId
-                    subtitleManager = SubtitleManager()
-                    _subtitleCues.value = emptyList()
-                    _activeCueIndex.value = -1
+            playerState
+                .map { it.videoId }
+                .distinctUntilChanged()
+                .collect { videoId ->
+                    if (videoId != null && videoId != currentVideoId) {
+                        currentVideoId = videoId
+                        userDisabledSubtitles = false
+                        subtitleManager = SubtitleManager()
+                        _subtitleCues.value = emptyList()
+                        _activeCueIndex.value = -1
+                    }
                 }
-                // Update active cue index on position changes
+        }
+
+        // Update active cue index on position changes (lightweight — no I/O)
+        viewModelScope.launch {
+            playerState.collect { state ->
                 val idx = subtitleManager.activeIndex(state.positionMs)
                 if (idx != _activeCueIndex.value) {
                     _activeCueIndex.value = idx
@@ -88,27 +109,38 @@ class PlayerViewModel(
             }
         }
 
-        // Auto-select subtitle language when tracks arrive
+        // Auto-select subtitle language when tracks first arrive for a new video.
+        // Uses distinctUntilChanged to only fire when tracks or language actually change,
+        // preventing the constant re-triggering that was overriding user's "Off" choice.
         viewModelScope.launch {
-            combine(subtitleTracks, playerState, prefs) { tracks, state, prefs ->
-                Triple(tracks, state, prefs)
-            }.collectLatest { (tracks, state, prefs) ->
-                if (tracks.isNotEmpty() && state.selectedSubtitleLanguage.isEmpty()) {
-                    val preferred = prefs.preferredSubtitleLanguage
-                    val match = if (preferred.isNotEmpty()) {
-                        tracks.firstOrNull { it.languageCode == preferred }
-                    } else null
-                    playerRepository.setSubtitleLanguage(
-                        match?.languageCode ?: tracks.first().languageCode
-                    )
+            combine(
+                subtitleTracks,
+                playerState.map { it.videoId to it.selectedSubtitleLanguage }.distinctUntilChanged(),
+                prefs,
+            ) { tracks, (_, lang), prefs ->
+                Triple(tracks, lang, prefs)
+            }.distinctUntilChanged()
+                .collect { (tracks, lang, prefs) ->
+                    if (tracks.isNotEmpty() && lang.isEmpty() && !userDisabledSubtitles) {
+                        val preferred = prefs.preferredSubtitleLanguage
+                        val match = if (preferred.isNotEmpty()) {
+                            tracks.firstOrNull { it.languageCode == preferred }
+                        } else null
+                        playerRepository.setSubtitleLanguage(
+                            match?.languageCode ?: tracks.first().languageCode
+                        )
+                    }
                 }
-            }
         }
 
-        // Parse VTT when content or language changes
+        // Parse VTT when content or selected language changes.
+        // Use distinctUntilChanged on the language to avoid re-parsing on every position tick.
         viewModelScope.launch {
-            combine(playerState, subtitleContent) { state, contentMap ->
-                state.selectedSubtitleLanguage to contentMap
+            combine(
+                playerState.map { it.selectedSubtitleLanguage }.distinctUntilChanged(),
+                subtitleContent,
+            ) { lang, contentMap ->
+                lang to contentMap
             }.collectLatest { (lang, contentMap) ->
                 val vtt = contentMap[lang]
                 if (vtt != null) {
@@ -122,67 +154,104 @@ class PlayerViewModel(
             }
         }
 
-        // Download VTT when language changes
+        // Download VTT when selected language changes.
+        // KEY FIX: Use distinctUntilChanged on (videoId, lang) so position ticks
+        // don't cancel the download via collectLatest.
         viewModelScope.launch {
-            playerState.collectLatest { state ->
-                val lang = state.selectedSubtitleLanguage
-                if (lang.isBlank()) return@collectLatest
-                if (subtitleContent.value.containsKey(lang)) return@collectLatest
+            playerState
+                .map { state -> state.videoId to state.selectedSubtitleLanguage }
+                .distinctUntilChanged()
+                .collectLatest { (videoId, lang) ->
+                    if (lang.isBlank() || videoId == null) return@collectLatest
+                    if (subtitleContent.value.containsKey(lang)) return@collectLatest
 
-                val videoId = state.videoId ?: return@collectLatest
-                val track = subtitleTracks.value.firstOrNull { it.languageCode == lang }
-                    ?: return@collectLatest
+                    val track = subtitleTracks.value.firstOrNull { it.languageCode == lang }
+                        ?: return@collectLatest
 
-                // Try disk cache first
-                val cached = try {
-                    withContext(Dispatchers.IO) { subtitleCacheManager.load(videoId, lang) }
-                } catch (_: Exception) { null }
-
-                if (cached != null) {
-                    playerRepository.addSubtitleContent(lang, cached)
-                    return@collectLatest
+                    downloadAndCacheSubtitle(videoId, lang, track)
                 }
+        }
 
-                // Download from URL
-                val content = downloadVttContent(track.url) ?: return@collectLatest
-
-                // Cache for future use
-                try {
-                    withContext(Dispatchers.IO) {
-                        subtitleCacheManager.save(
-                            videoId = videoId,
-                            languageCode = lang,
-                            languageName = track.languageName,
-                            format = track.format,
-                            isAutoGenerated = track.isAutoGenerated,
-                            content = content,
-                        )
-                    }
-                } catch (e: Exception) {
-                    AppLogger.w(TAG, "Failed to cache subtitle: ${e.message}")
+        // Eagerly pre-fetch the first subtitle track when tracks arrive (parallel with audio).
+        viewModelScope.launch {
+            combine(
+                subtitleTracks,
+                playerState.map { it.videoId }.distinctUntilChanged(),
+            ) { tracks, videoId ->
+                tracks to videoId
+            }.distinctUntilChanged()
+                .collect { (tracks, videoId) ->
+                    if (tracks.isEmpty() || videoId == null) return@collect
+                    val firstTrack = tracks.first()
+                    if (subtitleContent.value.containsKey(firstTrack.languageCode)) return@collect
+                    // Pre-fetch in background so it's ready when auto-select picks it
+                    downloadAndCacheSubtitle(videoId, firstTrack.languageCode, firstTrack)
                 }
-
-                playerRepository.addSubtitleContent(lang, content)
-            }
         }
 
         // Handle queue advance requests (tracks that need extraction)
         viewModelScope.launch {
-            playerRepository.queueAdvanceRequests.collect { item ->
+            playerRepository.queueAdvanceRequests.collectLatest { item ->
                 handleQueueExtraction(item)
             }
         }
 
-        // Periodically save playback position for resume
+        // Periodically save playback position for resume (only when playing)
         viewModelScope.launch {
             while (true) {
                 delay(POSITION_SAVE_INTERVAL_MS)
-                saveCurrentPosition()
+                if (playerState.value.isPlaying) {
+                    saveCurrentPosition()
+                }
             }
         }
     }
 
     private var currentVideoId: String? = null
+
+    // ─── Subtitle download helper ────────────────────────────────────────────
+
+    private suspend fun downloadAndCacheSubtitle(
+        videoId: String,
+        lang: String,
+        track: com.audioly.app.extraction.SubtitleTrack,
+    ) {
+        // Try disk cache first
+        val cached = try {
+            withContext(Dispatchers.IO) { subtitleCacheManager.load(videoId, lang) }
+        } catch (_: Exception) { null }
+
+        if (cached != null) {
+            playerRepository.addSubtitleContent(lang, cached)
+            return
+        }
+
+        // Download from URL
+        AppLogger.d(TAG, "Downloading subtitle: $lang for $videoId")
+        val content = downloadVttContent(track.url)
+        if (content == null) {
+            AppLogger.w(TAG, "Subtitle download returned null for $lang")
+            return
+        }
+
+        // Cache for future use
+        try {
+            withContext(Dispatchers.IO) {
+                subtitleCacheManager.save(
+                    videoId = videoId,
+                    languageCode = lang,
+                    languageName = track.languageName,
+                    format = track.format,
+                    isAutoGenerated = track.isAutoGenerated,
+                    content = content,
+                )
+            }
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Failed to cache subtitle: ${e.message}")
+        }
+
+        playerRepository.addSubtitleContent(lang, content)
+    }
 
     // ─── Playback commands (delegate to PlayerRepository) ─────────────────────
 
@@ -191,7 +260,17 @@ class PlayerViewModel(
     fun skipForward(intervalMs: Long) = playerRepository.skipForward(intervalMs)
     fun skipBack(intervalMs: Long) = playerRepository.skipBack(intervalMs)
     fun setSpeed(speed: Float) = playerRepository.setSpeed(speed)
-    fun setSubtitleLanguage(languageCode: String) = playerRepository.setSubtitleLanguage(languageCode)
+
+    /**
+     * Set subtitle language. Empty string means "Off".
+     * Tracks user's explicit "Off" choice to prevent auto-select from overriding it.
+     */
+    fun setSubtitleLanguage(languageCode: String) {
+        if (languageCode.isEmpty()) {
+            userDisabledSubtitles = true
+        }
+        playerRepository.setSubtitleLanguage(languageCode)
+    }
 
     // ─── Queue commands ──────────────────────────────────────────────────────
 
@@ -234,8 +313,6 @@ class PlayerViewModel(
         val state = playerState.value
         val videoId = state.videoId
         if (repo != null && videoId != null && state.positionMs > 5_000L) {
-            // Can't use viewModelScope (it's cancelled), use the repository's scope pattern
-            // instead save synchronously via a scope we create briefly
             kotlinx.coroutines.CoroutineScope(Dispatchers.IO + kotlinx.coroutines.SupervisorJob()).launch {
                 try {
                     val durMs = state.durationMs

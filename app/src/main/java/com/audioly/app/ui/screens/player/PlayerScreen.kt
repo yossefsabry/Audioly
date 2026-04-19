@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -40,11 +41,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.audioly.app.data.preferences.UserPreferences
 import com.audioly.app.ui.components.SubtitleView
 import com.audioly.app.ui.screens.player.components.PlayerArtwork
 import com.audioly.app.ui.screens.player.components.PlayerControls
@@ -64,6 +65,7 @@ fun PlayerScreen(
     val activeCueIndex by viewModel.activeCueIndex.collectAsState()
     val subtitleTracks by viewModel.subtitleTracks.collectAsState()
     val showSubtitles by viewModel.showSubtitles.collectAsState()
+    val hasSubtitleTracks by viewModel.hasSubtitleTracks.collectAsState()
     val queueItems by viewModel.queue.collectAsState()
     val queueIdx by viewModel.queueIndex.collectAsState()
     val repeatMode by viewModel.repeatMode.collectAsState()
@@ -71,6 +73,8 @@ fun PlayerScreen(
     val hasQueue = queueItems.size > 1
 
     var showQueueSheet by remember { mutableStateOf(false) }
+
+    val availableLanguages = subtitleTracks.map { it.languageCode }.distinct().sorted()
 
     // Loading state — no video loaded yet
     if (state.isEmpty) {
@@ -103,9 +107,6 @@ fun PlayerScreen(
         }
         return
     }
-
-    val availableLanguages = subtitleTracks.map { it.languageCode }.distinct().sorted()
-    val subtitlePosition = prefs.subtitlePosition
 
     Scaffold(
         topBar = {
@@ -146,58 +147,120 @@ fun PlayerScreen(
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Artwork
-            PlayerArtwork(
-                thumbnailUrl = state.thumbnailUrl,
-                title = state.title,
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            // Title + uploader
-            Text(
-                text = state.title,
-                style = MaterialTheme.typography.titleLarge,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = state.uploader,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            if (state.hasCachedAudio) {
-                Text(
-                    text = if (state.isFullyCached) "Available offline"
-                    else "Caching audio ${formatCacheProgress(state.cachedBytes, state.cacheContentLength)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            // Error message
-            if (state.error != null) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = state.error ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Subtitle — top position
-            if (showSubtitles && subtitlePosition == UserPreferences.SUBTITLE_TOP) {
+            // ─── Main content area ───────────────────────────────────────
+            // When subtitles are showing: lyrics replace the artwork (Image 4 design)
+            // When no subtitles: show artwork + title/uploader
+            if (showSubtitles && subtitleCues.isNotEmpty()) {
+                // Lyrics area takes all available space
                 SubtitleView(
                     cues = subtitleCues,
                     activeCueIndex = activeCueIndex,
                     fontSizeSp = prefs.subtitleFontSizeSp.sp,
-                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                     onCueTap = { posMs -> viewModel.seekTo(posMs) },
                 )
+
+                Spacer(Modifier.height(8.dp))
+
+                // Title + uploader below lyrics (compact)
+                Text(
+                    text = state.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = state.uploader,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            } else {
+                // No subtitles — artwork-focused layout
+                Spacer(Modifier.height(16.dp))
+
+                PlayerArtwork(
+                    thumbnailUrl = state.thumbnailUrl,
+                    title = state.title,
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                // Title + uploader
+                Text(
+                    text = state.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = state.uploader,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+
+                if (state.hasCachedAudio) {
+                    Text(
+                        text = if (state.isFullyCached) "Available offline"
+                        else "Caching audio ${formatCacheProgress(state.cachedBytes, state.cacheContentLength)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+
+                // Error message
+                if (state.error != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = state.error ?: "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+
+                // Waiting for subtitles indicator
+                if (hasSubtitleTracks && !showSubtitles) {
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.MusicNote,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "Loading lyrics...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        )
+                    }
+                }
+
+                Spacer(Modifier.weight(1f))
             }
+
+            // ─── Controls section (always at bottom) ─────────────────────
+
+            // Playback controls: repeat, prev, play/pause, next, shuffle
+            PlayerControls(
+                isPlaying = state.isPlaying,
+                isBuffering = state.isBuffering,
+                onTogglePlayPause = { viewModel.togglePlayPause() },
+                onSkipBack = { viewModel.skipBack(prefs.skipIntervalSeconds * 1000L) },
+                onSkipForward = { viewModel.skipForward(prefs.skipIntervalSeconds * 1000L) },
+                onSkipToNext = if (hasQueue) ({ viewModel.skipToNext() }) else null,
+                onSkipToPrevious = if (hasQueue) ({ viewModel.skipToPrevious() }) else null,
+                repeatMode = repeatMode,
+                onToggleRepeat = { viewModel.toggleRepeatMode() },
+                shuffleEnabled = shuffleEnabled,
+                onToggleShuffle = { viewModel.toggleShuffle() },
+            )
 
             // Seek bar
             PlayerSeekBar(
@@ -207,39 +270,7 @@ fun PlayerScreen(
                 onSeek = { viewModel.seekTo(it) },
             )
 
-            // Subtitle — middle position
-            if (showSubtitles && subtitlePosition == UserPreferences.SUBTITLE_MIDDLE) {
-                SubtitleView(
-                    cues = subtitleCues,
-                    activeCueIndex = activeCueIndex,
-                    fontSizeSp = prefs.subtitleFontSizeSp.sp,
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    onCueTap = { posMs -> viewModel.seekTo(posMs) },
-                )
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            // Playback controls
-            PlayerControls(
-                isPlaying = state.isPlaying,
-                isBuffering = state.isBuffering,
-                skipIntervalSeconds = prefs.skipIntervalSeconds,
-                onTogglePlayPause = { viewModel.togglePlayPause() },
-                onSkipBack = { viewModel.skipBack(prefs.skipIntervalSeconds * 1000L) },
-                onSkipForward = { viewModel.skipForward(prefs.skipIntervalSeconds * 1000L) },
-                hasQueue = hasQueue,
-                onSkipToNext = if (hasQueue) ({ viewModel.skipToNext() }) else null,
-                onSkipToPrevious = if (hasQueue) ({ viewModel.skipToPrevious() }) else null,
-                repeatMode = repeatMode,
-                onToggleRepeat = if (hasQueue) ({ viewModel.toggleRepeatMode() }) else null,
-                shuffleEnabled = shuffleEnabled,
-                onToggleShuffle = if (hasQueue) ({ viewModel.toggleShuffle() }) else null,
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            // Speed + subtitle pickers
+            // Speed + subtitle pickers (compact row at bottom)
             PlayerSpeedSubtitlePickers(
                 currentSpeed = state.playbackSpeed,
                 selectedLanguage = state.selectedSubtitleLanguage,
@@ -249,17 +280,6 @@ fun PlayerScreen(
             )
 
             Spacer(Modifier.height(8.dp))
-
-            // Subtitle — bottom position (default)
-            if (showSubtitles && subtitlePosition == UserPreferences.SUBTITLE_BOTTOM) {
-                SubtitleView(
-                    cues = subtitleCues,
-                    activeCueIndex = activeCueIndex,
-                    fontSizeSp = prefs.subtitleFontSizeSp.sp,
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    onCueTap = { posMs -> viewModel.seekTo(posMs) },
-                )
-            }
         }
     }
 
