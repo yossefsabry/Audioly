@@ -223,8 +223,8 @@ fun PlayerScreen(
                     )
                 }
 
-                // Waiting for subtitles indicator
-                if (hasSubtitleTracks && !showSubtitles) {
+                // Waiting for subtitles indicator (only when a language is selected, not when user turned Off)
+                if (hasSubtitleTracks && !showSubtitles && state.selectedSubtitleLanguage.isNotEmpty()) {
                     Spacer(Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(

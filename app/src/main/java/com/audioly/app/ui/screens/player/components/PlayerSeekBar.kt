@@ -58,7 +58,7 @@ fun PlayerSeekBar(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                formatMs(positionMs),
+                formatMs(displayPosition.toLong()),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
