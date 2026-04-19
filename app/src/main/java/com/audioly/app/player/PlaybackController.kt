@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.audioly.app.util.AppLogger
@@ -54,7 +55,14 @@ class PlaybackController(
         // survives unbind when the activity goes to background.
         // MediaSessionService auto-promotes to foreground (with notification)
         // once playback begins — no manual startForeground() needed.
-        appContext.startService(intent)
+        try {
+            appContext.startService(intent)
+        } catch (e: IllegalStateException) {
+            // On Android 8+ edge cases where the app state is ambiguous,
+            // startService() can throw. Fall back to startForegroundService().
+            AppLogger.w(TAG, "startService failed, falling back to startForegroundService: ${e.message}")
+            ContextCompat.startForegroundService(appContext, intent)
+        }
         appContext.bindService(intent, connection, Context.BIND_AUTO_CREATE)
         bindRequested = true
     }

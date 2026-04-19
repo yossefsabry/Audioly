@@ -107,7 +107,7 @@ class YouTubeExtractor {
         } catch (e: IOException) {
             AppLogger.w(TAG, "NewPipe network error for $videoId: ${e.message}")
             // Fall through to InnerTube
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             AppLogger.w(
                 TAG,
                 "NewPipe error for $videoId: ${e.javaClass.simpleName}: ${e.message}",
@@ -129,7 +129,7 @@ class YouTubeExtractor {
                 throw e // Never swallow coroutine cancellation
             } catch (e: IOException) {
                 AppLogger.w(TAG, "InnerTube ${client.clientName} network error for $videoId: ${e.message}")
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 AppLogger.w(
                     TAG,
                     "InnerTube ${client.clientName} error for $videoId: ${e.javaClass.simpleName}: ${e.message}",

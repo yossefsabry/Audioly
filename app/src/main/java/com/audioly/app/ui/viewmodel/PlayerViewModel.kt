@@ -397,13 +397,22 @@ class PlayerViewModel(
                     }
 
                     override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
-                        val body = response.use {
-                            if (it.isSuccessful) {
-                                it.body?.string()?.takeIf { s -> s.isNotBlank() }
-                            } else {
-                                AppLogger.w(TAG, "Subtitle HTTP ${it.code} for URL: $url")
-                                null
+                        if (cont.isCancelled) {
+                            response.close()
+                            return
+                        }
+                        val body = try {
+                            response.use {
+                                if (it.isSuccessful) {
+                                    it.body?.string()?.takeIf { s -> s.isNotBlank() }
+                                } else {
+                                    AppLogger.w(TAG, "Subtitle HTTP ${it.code} for URL: $url")
+                                    null
+                                }
                             }
+                        } catch (e: Exception) {
+                            AppLogger.w(TAG, "Subtitle response read failed: ${e.message} — URL: $url")
+                            null
                         }
                         cont.resumeWith(Result.success(body))
                     }
