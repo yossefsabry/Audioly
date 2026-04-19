@@ -47,7 +47,7 @@ fun MiniPlayer(
     ) {
         Column {
             LinearProgressIndicator(
-                progress = { state.progressFraction },
+                progress = { state.progressFraction.coerceIn(0f, 1f) },
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(

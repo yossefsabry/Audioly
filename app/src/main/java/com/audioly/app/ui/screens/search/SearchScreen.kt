@@ -147,8 +147,8 @@ fun SearchScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    TextButton(onClick = { viewModel.search(correctedQuery!!) }) {
-                        Text(correctedQuery!!)
+                    TextButton(onClick = { correctedQuery?.let { viewModel.search(it) } }) {
+                        Text(correctedQuery ?: "")
                     }
                 }
             }

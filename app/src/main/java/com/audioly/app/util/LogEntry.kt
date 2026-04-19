@@ -15,13 +15,17 @@ data class LogEntry(
     val throwable: String? = null,
 ) {
     fun formatted(): String {
-        val time = DATE_FMT.format(Date(timestamp))
+        val time = DATE_FMT.get()!!.format(Date(timestamp))
         val base = "$time  ${level.label}  [$tag]  $message"
         return if (throwable != null) "$base\n$throwable" else base
     }
 
     companion object {
-        private val DATE_FMT = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.US)
+        // ThreadLocal because SimpleDateFormat is NOT thread-safe and formatted()
+        // is called from both the main thread (exportText) and the file-writer thread.
+        private val DATE_FMT = ThreadLocal.withInitial {
+            SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.US)
+        }
     }
 }
 

@@ -58,7 +58,11 @@ fun PlaylistDetailScreen(
         .collectAsState(initial = null)
     val playlist by remember(playlistId) {
         kotlinx.coroutines.flow.flow {
-            emit(playlistRepository.getPlaylist(playlistId))
+            try {
+                emit(playlistRepository.getPlaylist(playlistId))
+            } catch (_: Exception) {
+                emit(null)
+            }
         }
     }.collectAsState(initial = null)
     val snackbarHostState = remember { SnackbarHostState() }

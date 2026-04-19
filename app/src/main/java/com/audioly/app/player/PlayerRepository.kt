@@ -213,6 +213,7 @@ class PlayerRepository(
     // ─── Queue operations ────────────────────────────────────────────────────
 
     /** Replace queue, set current index, start playing item at [startIndex]. */
+    @Synchronized
     fun setQueue(items: List<QueueItem>, startIndex: Int = 0) {
         _queue.value = items
         _queueIndex.value = if (items.isEmpty()) -1 else startIndex.coerceIn(0, items.lastIndex)
@@ -220,6 +221,7 @@ class PlayerRepository(
     }
 
     /** Append a single item to the end of the queue. */
+    @Synchronized
     fun addToQueue(item: QueueItem) {
         _queue.update { it + item }
         if (_queueIndex.value < 0) _queueIndex.value = 0
@@ -227,6 +229,7 @@ class PlayerRepository(
     }
 
     /** Insert item right after the currently playing track ("play next"). */
+    @Synchronized
     fun playNext(item: QueueItem) {
         _queue.update { current ->
             val insertAt = (_queueIndex.value + 1).coerceIn(0, current.size)
@@ -236,6 +239,7 @@ class PlayerRepository(
     }
 
     /** Remove item at [index] from queue. */
+    @Synchronized
     fun removeFromQueue(index: Int) {
         _queue.update { current ->
             if (index !in current.indices) return@update current
@@ -250,6 +254,7 @@ class PlayerRepository(
         regenerateShuffleOrder()
     }
 
+    @Synchronized
     fun clearQueue() {
         _queue.value = emptyList()
         _queueIndex.value = -1
@@ -270,6 +275,7 @@ class PlayerRepository(
         _repeatMode.value = mode
     }
 
+    @Synchronized
     fun toggleShuffle() {
         _shuffleEnabled.update { !it }
         regenerateShuffleOrder()
@@ -279,6 +285,7 @@ class PlayerRepository(
      * Called by AudioService/AudioPlayer when a track finishes (STATE_ENDED).
      * Advances to the next queue item based on repeat/shuffle mode.
      */
+    @Synchronized
     fun onTrackCompleted() {
         val q = _queue.value
         if (q.isEmpty()) return
@@ -310,6 +317,7 @@ class PlayerRepository(
     }
 
     /** Skip to next in queue. */
+    @Synchronized
     fun skipToNext() {
         val q = _queue.value
         if (q.isEmpty()) return
@@ -320,6 +328,7 @@ class PlayerRepository(
     }
 
     /** Skip to previous in queue. */
+    @Synchronized
     fun skipToPrevious() {
         val q = _queue.value
         if (q.isEmpty()) return

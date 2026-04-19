@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -152,7 +152,7 @@ fun LogViewerScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                 ) {
-                    items(filtered, key = { "${it.timestamp}-${it.tag}-${it.message.hashCode()}" }) { entry ->
+                    itemsIndexed(filtered, key = { index, entry -> "${index}-${entry.timestamp}-${entry.tag}" }) { _, entry ->
                         LogEntryRow(entry)
                     }
                 }
