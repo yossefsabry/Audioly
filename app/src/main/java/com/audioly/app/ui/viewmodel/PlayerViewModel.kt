@@ -69,6 +69,11 @@ class PlayerViewModel(
      */
     private var userDisabledSubtitles = false
 
+    private var currentVideoId: String? = null
+
+    /** Tracks in-flight subtitle downloads to prevent duplicate concurrent requests. */
+    private val downloadingLangs = mutableSetOf<String>()
+
     val showSubtitles: StateFlow<Boolean> = combine(
         _subtitleCues,
         playerState,
@@ -206,11 +211,6 @@ class PlayerViewModel(
             }
         }
     }
-
-    private var currentVideoId: String? = null
-
-    /** Tracks in-flight subtitle downloads to prevent duplicate concurrent requests. */
-    private val downloadingLangs = mutableSetOf<String>()
 
     // ─── Subtitle download helper ────────────────────────────────────────────
 
