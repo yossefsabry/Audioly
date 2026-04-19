@@ -75,7 +75,7 @@ fun CachedTab(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Tracks are cached automatically during playback.",
+                    "Tracks are cached during playback or from the player download button.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 )

@@ -17,7 +17,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -40,12 +42,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.audioly.app.data.cache.DownloadState
 import com.audioly.app.ui.components.SubtitleView
 import com.audioly.app.ui.screens.player.components.PlayerArtwork
 import com.audioly.app.ui.screens.player.components.PlayerControls
@@ -70,6 +75,7 @@ fun PlayerScreen(
     val queueIdx by viewModel.queueIndex.collectAsState()
     val repeatMode by viewModel.repeatMode.collectAsState()
     val shuffleEnabled by viewModel.shuffleEnabled.collectAsState()
+    val downloadState by viewModel.downloadState.collectAsState()
     val hasQueue = queueItems.size > 1
 
     var showQueueSheet by remember { mutableStateOf(false) }
@@ -126,6 +132,11 @@ fun PlayerScreen(
                     }
                 },
                 actions = {
+                    DownloadActionButton(
+                        downloadState = downloadState,
+                        onStartDownload = viewModel::startDownload,
+                        onCancelDownload = viewModel::cancelDownload,
+                    )
                     if (hasQueue) {
                         IconButton(onClick = { showQueueSheet = true }) {
                             Icon(
@@ -206,12 +217,28 @@ fun PlayerScreen(
                     textAlign = TextAlign.Center,
                 )
 
-                if (state.hasCachedAudio) {
+                val offlineStatusText = when (val status = downloadState) {
+                    is DownloadState.Downloading -> "Downloading for offline use ${formatDownloadProgress(status.progress)}"
+                    DownloadState.Completed -> "Available offline"
+                    is DownloadState.Failed -> "Download failed"
+                    DownloadState.Idle -> {
+                        if (state.hasCachedAudio) {
+                            if (state.isFullyCached) "Available offline"
+                            else "Caching audio ${formatCacheProgress(state.cachedBytes, state.cacheContentLength)}"
+                        } else {
+                            null
+                        }
+                    }
+                }
+                if (offlineStatusText != null) {
                     Text(
-                        text = if (state.isFullyCached) "Available offline"
-                        else "Caching audio ${formatCacheProgress(state.cachedBytes, state.cacheContentLength)}",
+                        text = offlineStatusText,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = if (downloadState is DownloadState.Failed) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        },
                     )
                 }
 
@@ -358,6 +385,77 @@ fun PlayerScreen(
     }
 }
 
+@Composable
+private fun DownloadActionButton(
+    downloadState: DownloadState,
+    onStartDownload: () -> Unit,
+    onCancelDownload: () -> Unit,
+) {
+    val buttonContentDescription = when (downloadState) {
+        is DownloadState.Downloading -> "Downloading ${formatDownloadProgress(downloadState.progress)}, tap to cancel"
+        DownloadState.Completed -> "Available offline"
+        is DownloadState.Failed -> "Retry download"
+        DownloadState.Idle -> "Download for offline use"
+    }
+    val onClick = when (downloadState) {
+        is DownloadState.Downloading -> onCancelDownload
+        DownloadState.Completed -> ({})
+        is DownloadState.Failed,
+        DownloadState.Idle,
+        -> onStartDownload
+    }
+
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.semantics { contentDescription = buttonContentDescription },
+    ) {
+        when (downloadState) {
+            is DownloadState.Downloading -> {
+                Box(
+                    modifier = Modifier.size(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(
+                        progress = { downloadState.progress.coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxSize(),
+                        strokeWidth = 2.dp,
+                    )
+                    Text(
+                        text = formatDownloadProgress(downloadState.progress),
+                        fontSize = 6.sp,
+                        lineHeight = 6.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Clip,
+                    )
+                }
+            }
+
+            DownloadState.Completed -> {
+                Icon(
+                    Icons.Default.DownloadDone,
+                    contentDescription = buttonContentDescription,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+
+            is DownloadState.Failed -> {
+                Icon(
+                    Icons.Outlined.FileDownload,
+                    contentDescription = buttonContentDescription,
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
+
+            DownloadState.Idle -> {
+                Icon(
+                    Icons.Outlined.FileDownload,
+                    contentDescription = buttonContentDescription,
+                )
+            }
+        }
+    }
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 private fun formatCacheProgress(cachedBytes: Long, contentLength: Long): String {
@@ -365,5 +463,10 @@ private fun formatCacheProgress(cachedBytes: Long, contentLength: Long): String 
     if (contentLength <= 0L) return "${cachedBytes / 1024} KB"
     val percent = ((cachedBytes.toDouble() / contentLength.toDouble()) * 100.0)
         .toInt().coerceIn(0, 100)
+    return "$percent%"
+}
+
+private fun formatDownloadProgress(progress: Float): String {
+    val percent = (progress * 100f).toInt().coerceIn(0, 100)
     return "$percent%"
 }

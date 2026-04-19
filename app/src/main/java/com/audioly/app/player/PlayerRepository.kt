@@ -87,6 +87,10 @@ class PlayerRepository(
     private var lastLoad: PendingLoad? = null
     private var pendingResumePositionMs: Long? = null
 
+    /** The audio stream URL for the currently loaded track (if any). */
+    val currentAudioUrl: String?
+        @Synchronized get() = lastLoad?.audioUrl
+
     // ─── Called by AudioService binder ────────────────────────────────────────
 
     @Synchronized

@@ -30,32 +30,36 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.audioly.app.data.model.Track
-
+import com.audioly.app.data.repository.CacheRepository
 import com.audioly.app.data.repository.PlaylistRepository
 import com.audioly.app.player.QueueItem
 import com.audioly.app.ui.components.TrackItem
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistDetailScreen(
     playlistId: Long,
     playlistRepository: PlaylistRepository,
+    cacheRepository: CacheRepository,
     onNavigateUp: () -> Unit,
     onPlayAll: (List<QueueItem>, startIndex: Int) -> Unit,
     onPlayTrack: (Track) -> Unit,
 ) {
     val tracks by playlistRepository.observePlaylistTracks(playlistId)
         .collectAsState(initial = null)
+    val cacheVersion by cacheRepository.cacheVersion.collectAsState()
     val playlist by remember(playlistId) {
         kotlinx.coroutines.flow.flow {
             try {
@@ -67,6 +71,19 @@ fun PlaylistDetailScreen(
     }.collectAsState(initial = null)
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val cacheStatusMap by produceState<Map<String, Boolean>>(
+        initialValue = emptyMap(),
+        tracks,
+        cacheVersion,
+    ) {
+        val trackList = tracks ?: run {
+            value = emptyMap()
+            return@produceState
+        }
+        value = withContext(Dispatchers.IO) {
+            trackList.associate { it.videoId to cacheRepository.hasCachedAudio(it.videoId) }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -154,7 +171,7 @@ fun PlaylistDetailScreen(
                         itemsIndexed(trackList, key = { _, t -> t.videoId }) { index, track ->
                             TrackItem(
                                 track = track,
-                                isCached = track.audioFilePath != null,
+                                isCached = cacheStatusMap[track.videoId] ?: false,
                                 onClick = {
                                     // Play from this index as a queue
                                     onPlayAll(trackList.map { it.toQueueItem() }, index)

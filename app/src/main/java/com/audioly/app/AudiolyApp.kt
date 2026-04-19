@@ -2,6 +2,7 @@ package com.audioly.app
 
 import android.app.Application
 import com.audioly.app.data.cache.AudioCacheManager
+import com.audioly.app.data.cache.TrackDownloadManager
 import com.audioly.app.data.db.AudiolyDatabase
 import com.audioly.app.data.preferences.UserPreferencesRepository
 import com.audioly.app.data.repository.CacheRepository
@@ -29,6 +30,9 @@ class AudiolyApp : Application() {
         private set
 
     lateinit var subtitleCacheManager: SubtitleCacheManager
+        private set
+
+    lateinit var trackDownloadManager: TrackDownloadManager
         private set
 
     lateinit var trackRepository: TrackRepository
@@ -105,6 +109,12 @@ class AudiolyApp : Application() {
         subtitleCacheManager = SubtitleCacheManager(
             subtitleRootDir = File(cacheDir, "subtitles"),
             dao = database.subtitleCacheDao(),
+        )
+
+        trackDownloadManager = TrackDownloadManager(
+            audioCacheManager = audioCacheManager,
+            subtitleCacheManager = subtitleCacheManager,
+            preferencesRepository = preferencesRepository,
         )
 
         trackRepository = TrackRepository(database.trackDao())

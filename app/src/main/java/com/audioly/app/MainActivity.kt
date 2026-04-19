@@ -257,6 +257,7 @@ private fun AudiolyMainContent(
                     PlaylistDetailScreen(
                         playlistId = playlistId,
                         playlistRepository = app.playlistRepository,
+                        cacheRepository = app.cacheRepository,
                         onNavigateUp = { navController.popBackStack() },
                         onPlayAll = { queueItems, startIndex ->
                             app.playerRepository.setQueue(queueItems, startIndex)

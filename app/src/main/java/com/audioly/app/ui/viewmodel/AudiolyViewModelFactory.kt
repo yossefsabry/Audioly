@@ -29,6 +29,7 @@ class AudiolyViewModelFactory(
             subtitleCacheManager = app.subtitleCacheManager,
             youTubeExtractor = app.youTubeExtractor,
             trackRepository = app.trackRepository,
+            trackDownloadManager = app.trackDownloadManager,
         ) as T
 
         modelClass.isAssignableFrom(LibraryViewModel::class.java) -> LibraryViewModel(

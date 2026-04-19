@@ -2,7 +2,9 @@ package com.audioly.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.audioly.app.data.cache.DownloadState
 import com.audioly.app.data.cache.SubtitleCacheManager
+import com.audioly.app.data.cache.TrackDownloadManager
 import com.audioly.app.data.preferences.UserPreferences
 import com.audioly.app.data.preferences.UserPreferencesRepository
 import com.audioly.app.network.AppHttpClient
@@ -14,6 +16,7 @@ import com.audioly.app.player.SubtitleManager
 import com.audioly.app.player.VttParser
 import com.audioly.app.util.AppLogger
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,6 +25,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -39,6 +44,7 @@ class PlayerViewModel(
     private val subtitleCacheManager: SubtitleCacheManager,
     private val youTubeExtractor: com.audioly.app.extraction.YouTubeExtractor? = null,
     private val trackRepository: com.audioly.app.data.repository.TrackRepository? = null,
+    private val trackDownloadManager: TrackDownloadManager? = null,
 ) : ViewModel() {
 
     val playerState = playerRepository.state
@@ -85,6 +91,22 @@ class PlayerViewModel(
     val hasSubtitleTracks: StateFlow<Boolean> = subtitleTracks
         .map { it.isNotEmpty() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    // ─── Download state ──────────────────────────────────────────────────────
+
+    /** Reactive download state for the currently playing video. */
+    @kotlin.OptIn(ExperimentalCoroutinesApi::class)
+    val downloadState: StateFlow<DownloadState> = playerState
+        .map { it.videoId }
+        .distinctUntilChanged()
+        .flatMapLatest { videoId ->
+            if (videoId != null && trackDownloadManager != null) {
+                trackDownloadManager.stateFlow(videoId)
+            } else {
+                flowOf(DownloadState.Idle)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DownloadState.Idle)
 
     init {
         // Watch for video changes — reset subtitle manager and user preference
@@ -294,6 +316,22 @@ class PlayerViewModel(
     fun toggleRepeatMode() = playerRepository.toggleRepeatMode()
     fun toggleShuffle() = playerRepository.toggleShuffle()
     fun removeFromQueue(index: Int) = playerRepository.removeFromQueue(index)
+
+    // ─── Download commands ───────────────────────────────────────────────────
+
+    /** Start downloading the current track's audio + preferred subtitle for offline use. */
+    fun startDownload() {
+        val videoId = playerState.value.videoId ?: return
+        val audioUrl = playerRepository.currentAudioUrl ?: return
+        val tracks = subtitleTracks.value
+        trackDownloadManager?.startDownload(videoId, audioUrl, tracks)
+    }
+
+    /** Cancel in-progress download for the current track. */
+    fun cancelDownload() {
+        val videoId = playerState.value.videoId ?: return
+        trackDownloadManager?.cancelDownload(videoId)
+    }
 
     /**
      * Save current playback position to DB for resume.
