@@ -3,12 +3,10 @@ import shared
 
 struct ContentView: View {
     @StateObject private var viewModel = PlayerViewModelWrapper()
-    @State private var searchText = ""
     @State private var selectedTab = 0
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            // Home Tab
             NavigationView {
                 HomeView(viewModel: viewModel)
                     .navigationTitle("Audioly")
@@ -19,7 +17,6 @@ struct ContentView: View {
             }
             .tag(0)
             
-            // Search Tab
             NavigationView {
                 SearchView(viewModel: viewModel)
                     .navigationTitle("Search")
@@ -30,7 +27,6 @@ struct ContentView: View {
             }
             .tag(1)
             
-            // Library Tab
             NavigationView {
                 LibraryView()
                     .navigationTitle("Library")
@@ -41,7 +37,6 @@ struct ContentView: View {
             }
             .tag(2)
             
-            // Settings Tab
             NavigationView {
                 SettingsView()
                     .navigationTitle("Settings")
@@ -55,17 +50,16 @@ struct ContentView: View {
         .overlay(alignment: .bottom) {
             if viewModel.isPlaying || viewModel.hasTrack {
                 MiniPlayerView(viewModel: viewModel)
-                    .padding(.bottom, 49) // Tab bar height
+                    .padding(.bottom, 49)
             }
         }
     }
 }
 
-// MARK: - Player ViewModel Wrapper (bridges KMP shared → SwiftUI)
+// MARK: - Player ViewModel Wrapper (bridges KMP shared -> SwiftUI)
 
 class PlayerViewModelWrapper: ObservableObject {
-    private let playerRepository: PlayerRepository
-    private let streamExtractor: IosStreamExtractor
+    let helper = IosAppHelper()
     
     @Published var isPlaying: Bool = false
     @Published var hasTrack: Bool = false
@@ -77,32 +71,29 @@ class PlayerViewModelWrapper: ObservableObject {
     @Published var isBuffering: Bool = false
     
     init() {
-        self.playerRepository = PlayerRepository(mainDispatcher: DispatchersKt.Main.immediate)
-        self.streamExtractor = IosStreamExtractor()
-        
-        let player = IosAudioPlayer()
-        playerRepository.attach(player: player)
+        helper.observePlayerState { [weak self] state in
+            guard let self = self else { return }
+            self.isPlaying = state.isPlaying
+            self.hasTrack = !state.videoId.isEmpty
+            self.title = state.title
+            self.uploader = state.uploader
+            self.thumbnailUrl = state.thumbnailUrl
+            self.positionMs = state.positionMs
+            self.durationMs = state.durationMs
+            self.isBuffering = state.isBuffering
+        }
     }
     
-    func search(query: String) async -> [SearchResult] {
-        // Bridge to KMP coroutine
-        return [] // TODO: Implement async bridge
+    func extractAndPlay(url: String) {
+        helper.extractAndPlay(videoIdOrUrl: url) { _ in }
     }
     
-    func play() {
-        playerRepository.play()
-    }
-    
-    func pause() {
-        playerRepository.pause()
-    }
-    
-    func togglePlayPause() {
-        playerRepository.togglePlayPause()
-    }
+    func play() { helper.play() }
+    func pause() { helper.pause() }
+    func togglePlayPause() { helper.togglePlayPause() }
 }
 
-// MARK: - Placeholder Views
+// MARK: - Views
 
 struct HomeView: View {
     @ObservedObject var viewModel: PlayerViewModelWrapper
@@ -129,7 +120,7 @@ struct HomeView: View {
                     .disableAutocorrection(true)
                 
                 Button(action: {
-                    // TODO: Extract and play
+                    viewModel.extractAndPlay(url: urlText)
                 }) {
                     Label("Play", systemImage: "play.fill")
                         .frame(maxWidth: .infinity)
@@ -198,7 +189,6 @@ struct MiniPlayerView: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // Thumbnail placeholder
             RoundedRectangle(cornerRadius: 6)
                 .fill(Color.gray.opacity(0.3))
                 .frame(width: 48, height: 48)
