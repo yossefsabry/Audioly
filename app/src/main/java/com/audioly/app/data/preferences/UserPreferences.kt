@@ -3,7 +3,7 @@ package com.audioly.app.data.preferences
 /** Immutable snapshot of all user preferences. */
 data class UserPreferences(
     /** "system", "light", or "dark" */
-    val themeMode: String = THEME_SYSTEM,
+    val themeMode: String = THEME_DARK,
     /** Playback speed multiplier, e.g. 1.0f, 1.5f, 2.0f */
     val playbackSpeed: Float = 1.0f,
     /** BCP-47 language code preferred for subtitles, empty = none. */

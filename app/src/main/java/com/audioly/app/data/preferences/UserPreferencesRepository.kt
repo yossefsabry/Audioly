@@ -20,7 +20,7 @@ class UserPreferencesRepository(private val context: Context) {
 
     val preferences: Flow<UserPreferences> = store.data.map { prefs ->
         UserPreferences(
-            themeMode = prefs[KEY_THEME_MODE] ?: UserPreferences.THEME_SYSTEM,
+            themeMode = prefs[KEY_THEME_MODE] ?: UserPreferences.THEME_DARK,
             playbackSpeed = prefs[KEY_PLAYBACK_SPEED] ?: 1.0f,
             preferredSubtitleLanguage = prefs[KEY_SUBTITLE_LANGUAGE] ?: "en",
             subtitleFontSizeSp = prefs[KEY_SUBTITLE_FONT_SIZE] ?: 16f,

@@ -2,21 +2,21 @@ package com.audioly.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Light palette (Finance App Aesthetic)
-val md_theme_light_primary = Color(0xFF2B2A36) // Dark slate for primary buttons
+// Light palette (Refined, clean and modern)
+val md_theme_light_primary = Color(0xFF0061A4) // A nice deep blue
 val md_theme_light_onPrimary = Color(0xFFFFFFFF)
-val md_theme_light_primaryContainer = Color(0xFFEBE6DF)
-val md_theme_light_onPrimaryContainer = Color(0xFF1C1C23)
+val md_theme_light_primaryContainer = Color(0xFFD1E4FF)
+val md_theme_light_onPrimaryContainer = Color(0xFF001D36)
 val md_theme_light_secondary = Color(0xFF535F70)
 val md_theme_light_onSecondary = Color(0xFFFFFFFF)
-val md_theme_light_secondaryContainer = Color(0xFFFFFFFF) // White cards
-val md_theme_light_onSecondaryContainer = Color(0xFF1A1A1E)
-val md_theme_light_background = Color(0xFFF8EFE3) // Soft cream background
-val md_theme_light_onBackground = Color(0xFF121215)
-val md_theme_light_surface = Color(0xFFFFFFFF) // Pure white for floating components
-val md_theme_light_onSurface = Color(0xFF121215)
-val md_theme_light_surfaceVariant = Color(0xFFF3EBE0) // Slightly darker cream for input fields or unselected tabs
-val md_theme_light_onSurfaceVariant = Color(0xFF5E5C65) // Dark grey for secondary text
+val md_theme_light_secondaryContainer = Color(0xFFD7E3F7)
+val md_theme_light_onSecondaryContainer = Color(0xFF101C2B)
+val md_theme_light_background = Color(0xFFFDFDFD) // Very subtle off-white
+val md_theme_light_onBackground = Color(0xFF1A1C1E)
+val md_theme_light_surface = Color(0xFFFDFDFD) 
+val md_theme_light_onSurface = Color(0xFF1A1C1E)
+val md_theme_light_surfaceVariant = Color(0xFFDFE2E6) // Clean gray for dividers/surfaces
+val md_theme_light_onSurfaceVariant = Color(0xFF43474E) 
 val md_theme_light_error = Color(0xFFBA1A1A)
 val md_theme_light_onError = Color(0xFFFFFFFF)
 
