@@ -130,10 +130,10 @@ class LibraryViewModel(
                 try {
                     val tracks = youTubeExtractor.fetchSubtitles(videoId)
                     if (tracks.isNotEmpty()) {
-                        val hadEnglish = playerRepository.subtitleTracks.value
-                            .any { it.languageCode.startsWith("en") }
+                        val hasEnglishContent = playerRepository.subtitleContent.value.keys
+                            .any { it.startsWith("en") }
                         playerRepository.setSubtitleTracks(tracks)
-                        if (!hadEnglish) {
+                        if (!hasEnglishContent) {
                             val englishTrack = tracks.firstOrNull { it.languageCode.startsWith("en") }
                             if (englishTrack != null) {
                                 playerRepository.setSubtitleLanguage(englishTrack.languageCode)

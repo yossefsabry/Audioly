@@ -183,22 +183,26 @@ class PlayerViewModel(
             }
         }
 
-        // Download VTT when selected language changes.
-        // KEY FIX: Use distinctUntilChanged on (videoId, lang) so position ticks
-        // don't cancel the download via collectLatest.
+        // Download VTT when selected language changes OR when tracks get updated URLs.
+        // Combines both (videoId, lang) and subtitleTracks so that when fresh tracks
+        // replace cached-with-empty-URL tracks, the download is re-attempted.
         viewModelScope.launch {
-            playerState
-                .map { state -> state.videoId to state.selectedSubtitleLanguage }
-                .distinctUntilChanged()
-                .collectLatest { (videoId, lang) ->
-                    if (lang.isBlank() || videoId == null) return@collectLatest
-                    if (subtitleContent.value.containsKey(lang)) return@collectLatest
+            combine(
+                playerState.map { state -> state.videoId to state.selectedSubtitleLanguage }.distinctUntilChanged(),
+                subtitleTracks,
+            ) { (videoId, lang), tracks ->
+                Triple(videoId, lang, tracks)
+            }.collectLatest { (videoId, lang, tracks) ->
+                if (lang.isBlank() || videoId == null) return@collectLatest
+                if (subtitleContent.value.containsKey(lang)) return@collectLatest
 
-                    val track = subtitleTracks.value.firstOrNull { it.languageCode == lang }
-                        ?: return@collectLatest
+                val track = tracks.firstOrNull { it.languageCode == lang }
+                    ?: return@collectLatest
+                // Skip if track has no URL and isn't auto-translated (e.g. from cache with empty URL)
+                if (track.url.isBlank() && !track.isAutoTranslated) return@collectLatest
 
-                    downloadAndCacheSubtitle(videoId, lang, track)
-                }
+                downloadAndCacheSubtitle(videoId, lang, track)
+            }
         }
 
         // Eagerly pre-fetch the first subtitle track when tracks arrive (parallel with audio).

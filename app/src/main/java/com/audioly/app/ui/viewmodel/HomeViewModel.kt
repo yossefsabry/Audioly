@@ -196,11 +196,13 @@ class HomeViewModel(
                 try {
                     val tracks = youTubeExtractor.fetchSubtitles(videoId)
                     if (tracks.isNotEmpty()) {
-                        val hadEnglish = playerRepository.subtitleTracks.value
-                            .any { it.languageCode.startsWith("en") }
+                        // Check if English content is actually loaded (not just a track entry with empty URL)
+                        val hasEnglishContent = playerRepository.subtitleContent.value.keys
+                            .any { it.startsWith("en") }
                         playerRepository.setSubtitleTracks(tracks)
-                        // If English just became available, select it as the preferred default
-                        if (!hadEnglish) {
+                        // If English content is NOT loaded yet, force-select English so
+                        // the download trigger re-fires with the fresh track (which has a real URL)
+                        if (!hasEnglishContent) {
                             val englishTrack = tracks.firstOrNull { it.languageCode.startsWith("en") }
                             if (englishTrack != null) {
                                 playerRepository.setSubtitleLanguage(englishTrack.languageCode)
