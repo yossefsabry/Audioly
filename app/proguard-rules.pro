@@ -117,3 +117,8 @@
 # Suppress warnings for missing optional dependencies
 -dontwarn sun.misc.**
 -dontwarn javax.annotation.**
+
+# ─── Jsoup (optional re2j regex dependency) ───────────────────────────────────
+-dontwarn com.google.re2j.Matcher
+-dontwarn com.google.re2j.Pattern
+-dontwarn javax.script.ScriptEngineFactory
