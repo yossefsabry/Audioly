@@ -12,6 +12,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import org.schabi.newpipe.extractor.exceptions.AgeRestrictedContentException
 import org.schabi.newpipe.extractor.exceptions.ContentNotAvailableException
+import org.schabi.newpipe.extractor.stream.AudioTrackType
 import org.schabi.newpipe.extractor.stream.StreamInfo as NpStreamInfo
 import java.io.IOException
 
@@ -261,20 +262,31 @@ class YouTubeExtractor {
 
         val npInfo = NpStreamInfo.getInfo(url)
 
-        // Get best audio stream
+        // Get best audio stream — prefer ORIGINAL track over dubbed/descriptive
         val audioStreams = npInfo.audioStreams
         if (audioStreams.isNullOrEmpty()) {
             AppLogger.w(TAG, "NewPipe: no audio streams for $videoId")
             return null
         }
 
-        val bestAudio = audioStreams.maxByOrNull { it.averageBitrate }
+        // Prefer original-language track; fall back to any track if none is marked ORIGINAL
+        val originalStreams = audioStreams.filter { stream ->
+            stream.audioTrackType == AudioTrackType.ORIGINAL ||
+                stream.audioTrackType == null  // null means single-track video (inherently original)
+        }
+        val candidateStreams = if (originalStreams.isNotEmpty()) originalStreams else audioStreams
+        val bestAudio = candidateStreams
+            .filter { !it.content.isNullOrBlank() }
+            .maxByOrNull { it.averageBitrate }
             ?: return null
         val audioUrl = bestAudio.content
         if (audioUrl.isNullOrBlank()) {
             AppLogger.w(TAG, "NewPipe: empty audio URL for $videoId")
             return null
         }
+
+        AppLogger.d(TAG, "NewPipe: selected audio track type=${bestAudio.audioTrackType}, " +
+            "locale=${bestAudio.audioLocale}, bitrate=${bestAudio.averageBitrate}")
 
         // Get subtitles
         val subtitles = try {
@@ -458,6 +470,7 @@ class YouTubeExtractor {
 
     /**
      * Picks the highest-bitrate audio-only format from adaptiveFormats.
+     * Prefers the original/default audio track over dubbed alternatives.
      * Skips any format that uses signatureCipher/cipher (requires JS decoding).
      */
     private fun pickBestAudioUrl(
@@ -473,6 +486,8 @@ class YouTubeExtractor {
 
         var bestUrl = ""
         var bestBitrate = -1
+        var bestDefaultUrl = ""
+        var bestDefaultBitrate = -1
 
         for (i in 0 until adaptiveFormats.length()) {
             val fmt = adaptiveFormats.optJSONObject(i) ?: continue
@@ -492,19 +507,32 @@ class YouTubeExtractor {
             }
 
             val bitrate = fmt.optInt("bitrate", 0)
+
+            // Check if this is the default/original audio track
+            val audioTrack = fmt.optJSONObject("audioTrack")
+            val isDefault = audioTrack?.optBoolean("audioIsDefault", false) ?: true  // true if no audioTrack = single track
+
+            if (isDefault && bitrate > bestDefaultBitrate) {
+                bestDefaultBitrate = bitrate
+                bestDefaultUrl = streamUrl
+            }
             if (bitrate > bestBitrate) {
                 bestBitrate = bitrate
                 bestUrl = streamUrl
             }
         }
 
-        if (bestUrl.isBlank()) {
+        // Prefer default/original track; fall back to highest bitrate overall
+        val selectedUrl = bestDefaultUrl.ifBlank { bestUrl }
+        val selectedBitrate = if (bestDefaultUrl.isNotBlank()) bestDefaultBitrate else bestBitrate
+
+        if (selectedUrl.isBlank()) {
             AppLogger.w(TAG, "No usable audio streams from $clientName for $videoId")
             return null
         }
 
-        AppLogger.d(TAG, "Best audio: bitrate=$bestBitrate from $clientName")
-        return bestUrl
+        AppLogger.d(TAG, "Best audio: bitrate=$selectedBitrate, isDefault=${bestDefaultUrl.isNotBlank()} from $clientName")
+        return selectedUrl
     }
 
     private fun pickBestThumbnail(details: JSONObject?, videoId: String): String {
