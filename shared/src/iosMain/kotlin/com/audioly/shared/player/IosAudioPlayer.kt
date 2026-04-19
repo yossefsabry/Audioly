@@ -1,16 +1,21 @@
 package com.audioly.shared.player
 
 import com.audioly.shared.util.AppLogger
+import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import platform.AVFoundation.*
+import platform.CoreMedia.CMTimeMakeWithSeconds
+import platform.CoreMedia.CMTimeGetSeconds
 import platform.Foundation.*
+import platform.darwin.dispatch_get_main_queue
 
 /**
  * iOS AudioPlayer using AVFoundation AVPlayer.
  * Implements [PlayerHandle] for the shared PlayerRepository.
  */
+@OptIn(ExperimentalForeignApi::class)
 class IosAudioPlayer : PlayerHandle {
 
     private val _state = MutableStateFlow(PlayerState())

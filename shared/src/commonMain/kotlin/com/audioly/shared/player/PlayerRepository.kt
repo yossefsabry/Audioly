@@ -34,7 +34,7 @@ class PlayerRepository(
 
     private val scope = CoroutineScope(SupervisorJob() + mainDispatcher)
 
-    @Volatile
+    @kotlin.concurrent.Volatile
     private var playerRef: PlayerHandle? = null
 
     // Fallback state for when player isn't attached yet
@@ -80,11 +80,10 @@ class PlayerRepository(
     private var pendingResumePositionMs: Long? = null
 
     val currentAudioUrl: String?
-        @Synchronized get() = lastLoad?.audioUrl
+        get() = lastLoad?.audioUrl
 
     // ─── Called by platform service binder ────────────────────────────────────
 
-    @Synchronized
     fun attach(player: PlayerHandle) {
         val queuedLoad = pendingLoad
         val keepFallbackState = queuedLoad != null || (player.state.value.isEmpty && !_fallbackState.value.isEmpty)
@@ -102,7 +101,6 @@ class PlayerRepository(
         _activePlayerState.value = player.state
     }
 
-    @Synchronized
     fun detach() {
         AppLogger.d(TAG, "Player detached")
         playerRef?.state?.value?.let { liveState ->
@@ -117,7 +115,6 @@ class PlayerRepository(
 
     // ─── Commands ─────────────────────────────────────────────────────────────
 
-    @Synchronized
     fun load(
         audioUrl: String,
         videoId: String,
@@ -145,7 +142,6 @@ class PlayerRepository(
         }
     }
 
-    @Synchronized
     fun play() {
         val player = playerRef
         if (player != null) {
@@ -159,10 +155,8 @@ class PlayerRepository(
         }
     }
 
-    @Synchronized
     fun pause() { playerRef?.pause() }
 
-    @Synchronized
     fun togglePlayPause() {
         val player = playerRef
         if (player != null) {
@@ -176,12 +170,12 @@ class PlayerRepository(
         }
     }
 
-    @Synchronized fun seekTo(positionMs: Long) { playerRef?.seekTo(positionMs) }
-    @Synchronized fun skipForward(intervalMs: Long = 15_000L) { playerRef?.skipForward(intervalMs) }
-    @Synchronized fun skipBack(intervalMs: Long = 15_000L) { playerRef?.skipBack(intervalMs) }
-    @Synchronized fun setSpeed(speed: Float) { playerRef?.setSpeed(speed) }
-    @Synchronized fun setSubtitleLanguage(languageCode: String) { playerRef?.setSubtitleLanguage(languageCode) }
-    @Synchronized fun setSubtitleIndex(index: Int) { playerRef?.setSubtitleIndex(index) }
+    fun seekTo(positionMs: Long) { playerRef?.seekTo(positionMs) }
+    fun skipForward(intervalMs: Long = 15_000L) { playerRef?.skipForward(intervalMs) }
+    fun skipBack(intervalMs: Long = 15_000L) { playerRef?.skipBack(intervalMs) }
+    fun setSpeed(speed: Float) { playerRef?.setSpeed(speed) }
+    fun setSubtitleLanguage(languageCode: String) { playerRef?.setSubtitleLanguage(languageCode) }
+    fun setSubtitleIndex(index: Int) { playerRef?.setSubtitleIndex(index) }
 
     // ─── Subtitle data ───────────────────────────────────────────────────────
 
@@ -202,21 +196,18 @@ class PlayerRepository(
 
     // ─── Queue operations ────────────────────────────────────────────────────
 
-    @Synchronized
     fun setQueue(items: List<QueueItem>, startIndex: Int = 0) {
         _queue.value = items
         _queueIndex.value = if (items.isEmpty()) -1 else startIndex.coerceIn(0, items.lastIndex)
         regenerateShuffleOrder()
     }
 
-    @Synchronized
     fun addToQueue(item: QueueItem) {
         _queue.update { it + item }
         if (_queueIndex.value < 0) _queueIndex.value = 0
         regenerateShuffleOrder()
     }
 
-    @Synchronized
     fun playNext(item: QueueItem) {
         _queue.update { current ->
             val insertAt = (_queueIndex.value + 1).coerceIn(0, current.size)
@@ -225,7 +216,6 @@ class PlayerRepository(
         regenerateShuffleOrder()
     }
 
-    @Synchronized
     fun removeFromQueue(index: Int) {
         _queue.update { current ->
             if (index !in current.indices) return@update current
@@ -239,7 +229,6 @@ class PlayerRepository(
         regenerateShuffleOrder()
     }
 
-    @Synchronized
     fun clearQueue() {
         _queue.value = emptyList()
         _queueIndex.value = -1
@@ -260,13 +249,11 @@ class PlayerRepository(
         _repeatMode.value = mode
     }
 
-    @Synchronized
     fun toggleShuffle() {
         _shuffleEnabled.update { !it }
         regenerateShuffleOrder()
     }
 
-    @Synchronized
     fun onTrackCompleted() {
         val q = _queue.value
         if (q.isEmpty()) return
@@ -296,7 +283,6 @@ class PlayerRepository(
         }
     }
 
-    @Synchronized
     fun skipToNext() {
         val q = _queue.value
         if (q.isEmpty()) return
@@ -306,7 +292,6 @@ class PlayerRepository(
         requestPlayQueueItem(q[nextIdx], nextIdx)
     }
 
-    @Synchronized
     fun skipToPrevious() {
         val q = _queue.value
         if (q.isEmpty()) return
@@ -380,7 +365,6 @@ class PlayerRepository(
         shuffleOrder = if (curIdx in q.indices) listOf(curIdx) + indices else indices
     }
 
-    @Synchronized
     private fun queueResumeForAttach() {
         val request = lastLoad ?: return
         AppLogger.d(TAG, "Queueing detached resume for ${request.videoId}")
