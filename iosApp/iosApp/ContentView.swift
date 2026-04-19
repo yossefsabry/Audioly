@@ -74,10 +74,10 @@ class PlayerViewModelWrapper: ObservableObject {
         helper.observePlayerState { [weak self] state in
             guard let self = self else { return }
             self.isPlaying = state.isPlaying
-            self.hasTrack = !state.videoId.isEmpty
-            self.title = state.title
-            self.uploader = state.uploader
-            self.thumbnailUrl = state.thumbnailUrl
+            self.hasTrack = !(state.videoId ?? "").isEmpty
+            self.title = state.title ?? ""
+            self.uploader = state.uploader ?? ""
+            self.thumbnailUrl = state.thumbnailUrl ?? ""
             self.positionMs = state.positionMs
             self.durationMs = state.durationMs
             self.isBuffering = state.isBuffering
