@@ -35,11 +35,17 @@ class SubtitleCacheManager(
         val file = File(dir, "$languageCode.$format")
         // Atomic write: write to temp file then rename to prevent corrupt files on crash
         val tempFile = File(dir, "$languageCode.$format.tmp")
-        tempFile.writeText(content)
-        if (!tempFile.renameTo(file)) {
-            // renameTo can fail on some filesystems; fall back to copy + delete
-            tempFile.copyTo(file, overwrite = true)
+        try {
+            tempFile.writeText(content)
+            if (!tempFile.renameTo(file)) {
+                // renameTo can fail on some filesystems; fall back to copy + delete
+                tempFile.copyTo(file, overwrite = true)
+                tempFile.delete()
+            }
+        } catch (e: Exception) {
+            // Clean up temp file on failure
             tempFile.delete()
+            throw e
         }
         dao.upsert(
             SubtitleCacheEntity(
@@ -56,11 +62,23 @@ class SubtitleCacheManager(
 
     // ─── Read ─────────────────────────────────────────────────────────────────
 
-    /** @return file content or null if not cached. */
+    /** @return file content or null if not cached or unreadable. */
     suspend fun load(videoId: String, languageCode: String): String? {
         val entity = dao.get(videoId, languageCode) ?: return null
         val file = File(entity.filePath)
-        return if (file.exists()) file.readText() else null
+        if (!file.exists()) {
+            // File was deleted (OS cache eviction, manual clear) but DB row remains.
+            // Clean up the stale DB entry so it doesn't mislead future lookups.
+            dao.delete(videoId, languageCode)
+            return null
+        }
+        return try {
+            file.readText().takeIf { it.isNotBlank() }
+        } catch (_: Exception) {
+            // Corrupted or unreadable file — remove stale entry
+            dao.delete(videoId, languageCode)
+            null
+        }
     }
 
     suspend fun getCacheEntry(videoId: String, languageCode: String): SubtitleCacheEntity? =

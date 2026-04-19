@@ -4,6 +4,7 @@ import com.audioly.app.data.cache.AudioCacheManager
 import com.audioly.app.data.cache.AudioCacheStatus
 import com.audioly.app.data.cache.SubtitleCacheManager
 import com.audioly.app.data.db.entities.SubtitleCacheEntity
+import com.audioly.app.util.AppLogger
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -57,8 +58,24 @@ class CacheRepository(
 
     /** Remove audio + subtitles for a video and clear the audioFilePath in Room. */
     suspend fun deleteVideo(videoId: String) {
-        audioCacheManager.deleteForVideo(videoId)
-        subtitleCacheManager.deleteAllForVideo(videoId)
-        trackRepository.setAudioFilePath(videoId, null)
+        try {
+            audioCacheManager.deleteForVideo(videoId)
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Failed to delete audio cache for $videoId: ${e.message}")
+        }
+        try {
+            subtitleCacheManager.deleteAllForVideo(videoId)
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Failed to delete subtitle cache for $videoId: ${e.message}")
+        }
+        try {
+            trackRepository.setAudioFilePath(videoId, null)
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Failed to clear audioFilePath for $videoId: ${e.message}")
+        }
+    }
+
+    private companion object {
+        const val TAG = "CacheRepository"
     }
 }
