@@ -257,7 +257,6 @@ private fun AudiolyMainContent(
                     PlaylistDetailScreen(
                         playlistId = playlistId,
                         playlistRepository = app.playlistRepository,
-                        cacheRepository = app.cacheRepository,
                         onNavigateUp = { navController.popBackStack() },
                         onPlayAll = { queueItems, startIndex ->
                             app.playerRepository.setQueue(queueItems, startIndex)
@@ -283,7 +282,6 @@ private fun AudiolyMainContent(
                                 launchSingleTop = true
                             }
                         },
-                        onRemoveTrack = { /* handled inside screen */ },
                     )
                 }
                 composable("player/{videoId}") { _ ->

@@ -82,6 +82,7 @@ fun SearchScreen(
     val isExtracting by viewModel.isExtracting.collectAsState()
     val lastFailedResult by viewModel.lastFailedResult.collectAsState()
     val correctedQuery by viewModel.correctedQuery.collectAsState()
+    val hasSearched by viewModel.hasSearched.collectAsState()
     val playlists by viewModel.playlists.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var playlistPickerResult by remember { mutableStateOf<SearchResult?>(null) }
@@ -189,7 +190,7 @@ fun SearchScreen(
                         items(6) { SearchResultSkeleton() }
                     }
                 }
-                results.isEmpty() && query.isNotEmpty() && !isSearching -> {
+                results.isEmpty() && hasSearched && !isSearching -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
                             "No results found",

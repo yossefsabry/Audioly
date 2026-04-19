@@ -360,7 +360,11 @@ class PlayerRepository(
             val logicalIdx = shuffleOrder.indexOf(current)
             val nextLogical = logicalIdx + 1
             return if (nextLogical < shuffleOrder.size) shuffleOrder[nextLogical]
-            else if (wrap) { regenerateShuffleOrder(); shuffleOrder.firstOrNull() }
+            else if (wrap) {
+                regenerateShuffleOrder()
+                // Skip index 0 which is always the current track — avoid replaying it
+                shuffleOrder.getOrNull(1) ?: shuffleOrder.firstOrNull()
+            }
             else null
         }
         val next = current + 1

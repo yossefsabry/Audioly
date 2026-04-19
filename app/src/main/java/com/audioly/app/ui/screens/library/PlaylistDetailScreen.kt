@@ -39,7 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.audioly.app.data.model.Track
-import com.audioly.app.data.repository.CacheRepository
+
 import com.audioly.app.data.repository.PlaylistRepository
 import com.audioly.app.player.QueueItem
 import com.audioly.app.ui.components.TrackItem
@@ -47,15 +47,12 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-@Suppress("UNUSED_PARAMETER")
 fun PlaylistDetailScreen(
     playlistId: Long,
     playlistRepository: PlaylistRepository,
-    cacheRepository: CacheRepository,
     onNavigateUp: () -> Unit,
     onPlayAll: (List<QueueItem>, startIndex: Int) -> Unit,
     onPlayTrack: (Track) -> Unit,
-    onRemoveTrack: (String) -> Unit,
 ) {
     val tracks by playlistRepository.observePlaylistTracks(playlistId)
         .collectAsState(initial = null)

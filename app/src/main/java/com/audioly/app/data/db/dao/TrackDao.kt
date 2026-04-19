@@ -67,6 +67,7 @@ interface TrackDao {
                 lastPlayedAt = existing?.lastPlayedAt ?: track.lastPlayedAt,
                 playCount = existing?.playCount ?: track.playCount,
                 addedAt = existing?.addedAt ?: track.addedAt,
+                lastPositionMs = existing?.lastPositionMs ?: track.lastPositionMs,
             )
         )
     }

@@ -64,9 +64,13 @@ class SearchViewModel(
     private val _events = MutableSharedFlow<SearchEvent>(extraBufferCapacity = 8)
     val events = _events.asSharedFlow()
 
+    private val _hasSearched = MutableStateFlow(false)
+    val hasSearched: StateFlow<Boolean> = _hasSearched.asStateFlow()
+
     private var nextPage: Page? = null
     private var currentQuery: String = ""
     private var searchJob: Job? = null
+    private var loadMoreJob: Job? = null
 
     fun updateQuery(text: String) {
         _query.value = text
@@ -77,10 +81,13 @@ class SearchViewModel(
         if (trimmed.isBlank()) return
 
         searchJob?.cancel()
+        loadMoreJob?.cancel()
         currentQuery = trimmed
         _query.value = trimmed
         nextPage = null
         _correctedQuery.value = null
+        _lastFailedResult.value = null
+        _hasSearched.value = false
 
         searchJob = viewModelScope.launch {
             _isSearching.value = true
@@ -99,6 +106,7 @@ class SearchViewModel(
                 )
             } finally {
                 _isSearching.value = false
+                _hasSearched.value = true
             }
         }
     }
@@ -107,7 +115,7 @@ class SearchViewModel(
         val page = nextPage ?: return
         if (_isLoadingMore.value || _isSearching.value) return
 
-        viewModelScope.launch {
+        loadMoreJob = viewModelScope.launch {
             _isLoadingMore.value = true
             try {
                 searchService.searchMore(currentQuery, page).fold(
